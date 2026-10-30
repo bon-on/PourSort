@@ -4,7 +4,7 @@ Spec: `harness/specs/feature-pour-sort-mvp.md`
 
 ## Checks
 - `flutter analyze`: no issues.
-- `flutter test`: 15 tests pass (`test/pour_game_test.dart`: pour rules, win,
+- `flutter test`: all tests pass (see flutter test output) (`test/pour_game_test.dart`: pour rules, win,
   undo, extra tube, levels 1..30 solvable and replayable, determinism, ramp;
   `test/widget_test.dart`: tap/undo/restart/extra tube, keyboard, viewport fit
   at 390x844 and 1280x720 for levels 12 and 30).

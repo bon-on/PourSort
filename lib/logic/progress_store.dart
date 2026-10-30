@@ -11,7 +11,8 @@ class PrefsProgressStore implements ProgressStore {
   @override
   Future<int> loadLevel() async {
     final prefs = await SharedPreferences.getInstance();
-    final v = prefs.getInt(_key) ?? 1;
+    final raw = prefs.get(_key);
+    final v = raw is int ? raw : 1;
     return v < 1 ? 1 : v;
   }
 

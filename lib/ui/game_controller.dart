@@ -17,10 +17,37 @@ class GameController extends ChangeNotifier {
   int moveSerial = 0;
   bool loaded = false;
 
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
   Future<void> init() async {
-    loadLevel(await store.loadLevel());
+    var saved = 1;
+    try {
+      saved = await store.loadLevel();
+    } catch (_) {
+      saved = 1;
+    }
+    if (_disposed) return;
     loaded = true;
-    notifyListeners();
+    loadLevel(saved);
+  }
+
+  Future<void> _save(int value) async {
+    try {
+      await store.saveLevel(value);
+    } catch (_) {
+      // Progress is best effort; the game keeps working without storage.
+    }
   }
 
   void loadLevel(int n) {
@@ -47,7 +74,7 @@ class GameController extends ChangeNotifier {
         selected = null;
         lastMove = move;
         moveSerial++;
-        if (won) store.saveLevel(level + 1);
+        if (won) _save(level + 1);
       } else {
         selected = game.tubes[i].isNotEmpty ? i : null;
       }
@@ -56,6 +83,7 @@ class GameController extends ChangeNotifier {
   }
 
   void undo() {
+    if (won) return;
     if (game.undo() != null) {
       selected = null;
       lastMove = null;

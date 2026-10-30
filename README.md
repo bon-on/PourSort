@@ -12,8 +12,10 @@ liquid between tubes until every tube holds a single color.
 - Every color also has its own symbol, so the game is playable without
   telling hues apart.
 - Buttons: Undo (unlimited), Restart, and add one extra empty tube per level.
-- Keyboard: `1`-`9`, `0` select tubes 1-10, `U` undo, `R` restart, `E` extra
-  tube, `Enter`/`N` next level after winning.
+- Keyboard: `1`-`9`, `0`, then `Q W E T Y I` select tubes (shown under each
+  tube), `U` undo, `R` restart, `A` extra tube, `Enter`/`N` next level after
+  winning. Undo is disabled after a win; restarting a level restores its extra
+  tube.
 - Levels start with 3 colors and grow to 10. Level N is always the same level,
   and every level is verified solvable. Progress (current level) is saved
   locally.

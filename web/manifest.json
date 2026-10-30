@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#0F172A",
     "theme_color": "#38BDF8",
-    "description": "A color sort puzzle: pour liquids until every tube holds one color.",
+    "description": "PourSort - a color sort puzzle: pour liquids until every tube holds one color.",
     "orientation": "any",
     "prefer_related_applications": false,
     "icons": [

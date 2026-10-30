@@ -20,7 +20,21 @@ const _digitKeys = [
   LogicalKeyboardKey.digit8,
   LogicalKeyboardKey.digit9,
   LogicalKeyboardKey.digit0,
+  LogicalKeyboardKey.keyQ,
+  LogicalKeyboardKey.keyW,
+  LogicalKeyboardKey.keyE,
+  LogicalKeyboardKey.keyT,
+  LogicalKeyboardKey.keyY,
+  LogicalKeyboardKey.keyI,
 ];
+
+/// Label shown under tube [i]: 1-9, 0, then Q W E T Y I.
+String tubeKeyLabel(int i) {
+  const letters = ['Q', 'W', 'E', 'T', 'Y', 'I'];
+  if (i < 9) return '${i + 1}';
+  if (i == 9) return '0';
+  return i - 10 < letters.length ? letters[i - 10] : '';
+}
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key, required this.store});
@@ -59,7 +73,7 @@ class _GameScreenState extends State<GameScreen>
     }
     if (_ctrl.loaded && _ctrl.won && !_wasWon) _winKey++;
     _wasWon = _ctrl.loaded && _ctrl.won;
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override
@@ -78,7 +92,7 @@ class _GameScreenState extends State<GameScreen>
       _ctrl.undo();
     } else if (k == LogicalKeyboardKey.keyR) {
       _ctrl.restart();
-    } else if (k == LogicalKeyboardKey.keyE) {
+    } else if (k == LogicalKeyboardKey.keyA) {
       _ctrl.addTube();
     } else if ((k == LogicalKeyboardKey.enter ||
             k == LogicalKeyboardKey.keyN) &&
@@ -140,33 +154,39 @@ class _Hud extends StatelessWidget {
     final g = ctrl.game;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        runSpacing: 4,
-        spacing: 12,
+      child: Row(
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Level ${ctrl.level}',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                ),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Level ${ctrl.level}',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Moves ${g.moves}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              Text('Moves ${g.moves}', style: const TextStyle(fontSize: 16)),
-            ],
+            ),
           ),
+          const SizedBox(width: 8),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton.filledTonal(
                 key: const Key('undo'),
                 tooltip: 'Undo (U)',
-                onPressed: g.canUndo ? ctrl.undo : null,
+                onPressed: g.canUndo && !ctrl.won ? ctrl.undo : null,
                 icon: const Icon(Icons.undo),
               ),
               const SizedBox(width: 6),
@@ -179,7 +199,7 @@ class _Hud extends StatelessWidget {
               const SizedBox(width: 6),
               IconButton.filledTonal(
                 key: const Key('add-tube'),
-                tooltip: 'Add an empty tube, once per level (E)',
+                tooltip: 'Add an empty tube, once per level (A)',
                 onPressed: g.extraTubeUsed || ctrl.won ? null : ctrl.addTube,
                 icon: const Icon(Icons.add),
               ),
@@ -209,23 +229,22 @@ class _Board extends StatelessWidget {
         var bestCols = n;
         for (var cols = 1; cols <= n; cols++) {
           final rows = (n / cols).ceil();
-          final tw = min(84.0, (availW - gap * (cols - 1)) / cols);
-          final cell = _cellHeight(tw);
-          if (rows * cell + (rows - 1) * gap <= availH && tw >= bestTw) {
+          final byWidth = (availW - gap * (cols - 1)) / cols;
+          final byHeight =
+              (availH - (rows - 1) * gap - 24 * rows) / (3.8 * rows);
+          final tw = min(84.0, min(byWidth, byHeight));
+          if (tw >= bestTw) {
             bestTw = tw;
             bestCols = cols;
           }
         }
-        if (bestTw == 0) {
-          bestCols = n;
-          bestTw = max(18.0, (availW - gap * (n - 1)) / n);
-        }
+        bestTw = max(bestTw, 14.0);
         final tw = bestTw;
         final segH = tw * 0.8;
         return Center(
           child: SingleChildScrollView(
             child: SizedBox(
-              width: bestCols * tw + (bestCols - 1) * gap,
+              width: bestCols * tw + (bestCols - 1) * gap + 1,
               child: Wrap(
                 alignment: WrapAlignment.center,
                 spacing: gap,
@@ -247,8 +266,6 @@ class _Board extends StatelessWidget {
       },
     );
   }
-
-  static double _cellHeight(double tw) => tubeHeight(tw * 0.8) + tw * 0.6 + 20;
 }
 
 class _TubeCell extends StatelessWidget {
@@ -338,9 +355,9 @@ class _TubeCell extends StatelessWidget {
               ),
               SizedBox(
                 height: 20,
-                child: index < 10
+                child: tubeKeyLabel(index).isNotEmpty
                     ? Text(
-                        '${(index + 1) % 10}',
+                        tubeKeyLabel(index),
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.white54,

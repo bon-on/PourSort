@@ -25,14 +25,16 @@ always solvable and stable between sessions.
   empty tube or a tube with the same top color.
 - Win when every tube is empty or holds 4 segments of a single color.
 - Level N is generated from seed N: colors ramp from 3 up to 10, plus 2 empty
-  tubes. Generation uses random reverse moves from the solved state, then a
-  solver verifies solvability and rejects levels that are too easy.
+  tubes. Every colored tube starts full (a seeded shuffle of the color
+  multiset); a solver verifies solvability and rejects levels that are too
+  easy or that start with an already complete tube.
 - HUD: level, moves, undo (unlimited), restart, and one extra empty tube per
   level. The current level is saved locally (shared_preferences).
 - Pour animation (lift, tilt, fill), confetti on win, and a distinct symbol on
   every color for colorblind players.
-- Input: tap or click; keyboard 1-9/0 select tubes, U undo, R restart, E extra
-  tube, Enter/N next level after a win.
+- Input: tap or click; keyboard 1-9/0 then Q W E T Y I select tubes (labels
+  shown under each tube), U undo, R restart, A extra tube, Enter/N next level
+  after a win. Undo is disabled once a level is won.
 - Game rules, solver and generator live in widget-free files under `lib/logic/`.
 
 ## Acceptance Criteria
@@ -42,8 +44,11 @@ always solvable and stable between sessions.
   rules wins, and each has at least `colors + 3` solution moves.
 - `generateLevel(n)` returns identical tubes on every call; an injected
   `Random` is honored.
+- Generated levels start with every colored tube full plus 2 empty tubes, and
+  never throw.
 - Undo restores tubes and the move counter; the extra tube works once per level.
-- Tubes stay inside the viewport at 390x844 and 1280x720 for levels 12 and 30.
+- Tubes stay inside the viewport at 390x844, 1280x720, 844x390 and 320x640
+  for levels 3, 12 and 30, with and without the extra tube.
 - Flutter analyze, flutter tests, web release build and harness audit pass.
 
 ## Constraints

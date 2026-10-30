@@ -153,13 +153,44 @@ void main() {
       }
     });
 
-    test('deterministic per level number and injectable Random', () {
+    test('deterministic per level number and honors injected Random', () {
       expect(generateLevel(7).tubes, generateLevel(7).tubes);
       expect(generateLevel(7).tubes, isNot(generateLevel(8).tubes));
       expect(
-        generateLevel(5, random: Random(99)).tubes,
-        generateLevel(5, random: Random(99)).tubes,
+        generateLevel(5, random: SeededRandom(99)).tubes,
+        generateLevel(5, random: SeededRandom(99)).tubes,
       );
+      expect(
+        generateLevel(5, random: SeededRandom(99)).tubes,
+        isNot(generateLevel(5, random: SeededRandom(100)).tubes),
+      );
+      expect(
+        generateLevel(5, random: Random(1)).tubes,
+        isNot(generateLevel(5, random: Random(2)).tubes),
+      );
+    });
+
+    test('SeededRandom produces a fixed sequence (VM/web stable)', () {
+      final r = SeededRandom(1);
+      expect(
+        [for (var i = 0; i < 5; i++) r.nextInt(1000)],
+        [435, 366, 675, 10, 382],
+      );
+    });
+
+    test('levels start with full colored tubes plus 2 empty, none uniform', () {
+      for (var n = 1; n <= 30; n++) {
+        final level = generateLevel(n);
+        final empty = level.tubes.where((t) => t.isEmpty).length;
+        final full = level.tubes.where((t) => t.length == kTubeCapacity);
+        expect(empty, kEmptyTubes, reason: 'level $n');
+        expect(full.length, level.colors, reason: 'level $n');
+        expect(
+          full.any((t) => t.every((c) => c == t.first)),
+          isFalse,
+          reason: 'level $n',
+        );
+      }
     });
 
     test('difficulty ramps from 3 up to 10 colors', () {
