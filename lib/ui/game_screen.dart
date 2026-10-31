@@ -7,6 +7,7 @@ import '../logic/pour_game.dart';
 import '../logic/progress_store.dart';
 import 'confetti.dart';
 import 'game_controller.dart';
+import 'how_to_play.dart';
 import 'tube_painter.dart';
 
 const _digitKeys = [
@@ -37,9 +38,12 @@ String tubeKeyLabel(int i) {
 }
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key, required this.store});
+  const GameScreen({super.key, required this.store, this.tutorialStore});
 
   final ProgressStore store;
+
+  /// Defaults to [PrefsTutorialStore].
+  final TutorialStore? tutorialStore;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -57,11 +61,66 @@ class _GameScreenState extends State<GameScreen>
   bool _wasWon = false;
   int _winKey = 0;
 
+  // Input stays blocked until the tutorial flag has been read.
+  bool _tutorialChecked = false;
+  bool _tutorialOpen = false;
+  int _tutorialStep = 0;
+  late final TutorialStore _tutorialStore =
+      widget.tutorialStore ?? PrefsTutorialStore();
+
+  bool get _inputBlocked => !_tutorialChecked || _tutorialOpen;
+
   @override
   void initState() {
     super.initState();
     _ctrl.addListener(_onChange);
     _ctrl.init();
+    _checkTutorial();
+  }
+
+  Future<void> _checkTutorial() async {
+    var seen = false;
+    try {
+      seen = await _tutorialStore.isSeen();
+    } catch (_) {
+      seen = false;
+    }
+    if (!mounted) return;
+    setState(() {
+      _tutorialChecked = true;
+      _tutorialOpen = !seen;
+      _tutorialStep = 0;
+    });
+  }
+
+  void _openTutorial() {
+    setState(() {
+      _tutorialOpen = true;
+      _tutorialStep = 0;
+    });
+    _focus.requestFocus();
+  }
+
+  void _closeTutorial() {
+    setState(() => _tutorialOpen = false);
+    _focus.requestFocus();
+    () async {
+      try {
+        await _tutorialStore.markSeen();
+      } catch (_) {}
+    }();
+  }
+
+  void _tutorialNext() {
+    if (_tutorialStep >= pourSortSteps.length - 1) {
+      _closeTutorial();
+    } else {
+      setState(() => _tutorialStep++);
+    }
+  }
+
+  void _tutorialPrev() {
+    if (_tutorialStep > 0) setState(() => _tutorialStep--);
   }
 
   void _onChange() {
@@ -86,7 +145,26 @@ class _GameScreenState extends State<GameScreen>
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
-    if (e is! KeyDownEvent || !_ctrl.loaded) return KeyEventResult.ignored;
+    if (_tutorialOpen) {
+      if (e is KeyDownEvent) {
+        final k = e.logicalKey;
+        if (k == LogicalKeyboardKey.enter ||
+            k == LogicalKeyboardKey.numpadEnter ||
+            k == LogicalKeyboardKey.space) {
+          _tutorialNext();
+        } else if (k == LogicalKeyboardKey.arrowRight) {
+          if (_tutorialStep < pourSortSteps.length - 1) _tutorialNext();
+        } else if (k == LogicalKeyboardKey.escape) {
+          _closeTutorial();
+        } else if (k == LogicalKeyboardKey.arrowLeft) {
+          _tutorialPrev();
+        }
+      }
+      return KeyEventResult.handled;
+    }
+    if (e is! KeyDownEvent || !_ctrl.loaded || _inputBlocked) {
+      return KeyEventResult.ignored;
+    }
     final k = e.logicalKey;
     if (k == LogicalKeyboardKey.keyU) {
       _ctrl.undo();
@@ -113,32 +191,47 @@ class _GameScreenState extends State<GameScreen>
       autofocus: true,
       onKeyEvent: _onKey,
       child: Scaffold(
-        body: SafeArea(
-          child: !_ctrl.loaded
-              ? const Center(child: CircularProgressIndicator())
-              : Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 960),
-                    child: Column(
-                      children: [
-                        _Hud(ctrl: _ctrl),
-                        Expanded(
-                          child: Stack(
-                            children: [
-                              _Board(ctrl: _ctrl, pour: _pour),
-                              if (_ctrl.won) ...[
-                                Positioned.fill(
-                                  child: Confetti(key: ValueKey(_winKey)),
-                                ),
-                                Center(child: _WinCard(ctrl: _ctrl)),
-                              ],
-                            ],
-                          ),
+        body: Stack(
+          children: [
+            SafeArea(
+              child: !_ctrl.loaded
+                  ? const Center(child: CircularProgressIndicator())
+                  : Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 960),
+                        child: Column(
+                          children: [
+                            _Hud(ctrl: _ctrl, onHelp: _openTutorial),
+                            Expanded(
+                              child: Stack(
+                                children: [
+                                  _Board(ctrl: _ctrl, pour: _pour),
+                                  if (_ctrl.won) ...[
+                                    Positioned.fill(
+                                      child: Confetti(key: ValueKey(_winKey)),
+                                    ),
+                                    Center(child: _WinCard(ctrl: _ctrl)),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+            ),
+            if (!_tutorialChecked)
+              const Positioned.fill(child: AbsorbPointer()),
+            if (_tutorialOpen)
+              Positioned.fill(
+                child: HowToPlayOverlay(
+                  steps: pourSortSteps,
+                  step: _tutorialStep,
+                  onNext: _tutorialNext,
+                  onSkip: _closeTutorial,
                 ),
+              ),
+          ],
         ),
       ),
     );
@@ -146,8 +239,9 @@ class _GameScreenState extends State<GameScreen>
 }
 
 class _Hud extends StatelessWidget {
-  const _Hud({required this.ctrl});
+  const _Hud({required this.ctrl, required this.onHelp});
   final GameController ctrl;
+  final VoidCallback onHelp;
 
   @override
   Widget build(BuildContext context) {
@@ -202,6 +296,13 @@ class _Hud extends StatelessWidget {
                 tooltip: 'Add an empty tube, once per level (A)',
                 onPressed: g.extraTubeUsed || ctrl.won ? null : ctrl.addTube,
                 icon: const Icon(Icons.add),
+              ),
+              const SizedBox(width: 6),
+              IconButton.filledTonal(
+                key: const Key('how-to-play-button'),
+                tooltip: 'How to play',
+                onPressed: onHelp,
+                icon: const Icon(Icons.help_outline),
               ),
             ],
           ),

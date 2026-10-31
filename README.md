@@ -16,6 +16,8 @@ liquid between tubes until every tube holds a single color.
   tube), `U` undo, `R` restart, `A` extra tube, `Enter`/`N` next level after
   winning. Undo is disabled after a win; restarting a level restores its extra
   tube.
+- First launch shows a skippable "How to play" card; the `?` button reopens
+  it (Enter/Space next, Esc skip, arrows to move between steps).
 - Levels start with 3 colors and grow to 10. Level N is always the same level,
   and every level is verified solvable. Progress (current level) is saved
   locally.

@@ -4,6 +4,7 @@ title: Deliver the PourSort MVP
 status: active
 related_specs:
   - feature-pour-sort-mvp
+  - feature-how-to-play-tutorial
 evidence_files:
   - reports/pour-sort-mvp-verification.md
 ---

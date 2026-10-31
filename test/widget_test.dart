@@ -6,6 +6,7 @@ import 'package:pour_sort/logic/progress_store.dart';
 import 'package:pour_sort/logic/solver.dart';
 import 'package:pour_sort/main.dart';
 import 'package:pour_sort/ui/game_screen.dart';
+import 'package:pour_sort/ui/how_to_play.dart';
 
 final _digits = [
   LogicalKeyboardKey.digit1,
@@ -21,6 +22,8 @@ Future<void> _setSize(WidgetTester t, Size size) async {
   addTearDown(t.view.reset);
 }
 
+MemoryTutorialStore _seen() => MemoryTutorialStore(seen: true);
+
 void main() {
   final first = legalMoves(generateLevel(1).tubes).first;
 
@@ -28,7 +31,9 @@ void main() {
     t,
   ) async {
     await _setSize(t, const Size(390, 844));
-    await t.pumpWidget(PourSortApp(store: MemoryProgressStore()));
+    await t.pumpWidget(
+      PourSortApp(store: MemoryProgressStore(), tutorialStore: _seen()),
+    );
     await t.pumpAndSettle();
 
     expect(find.text('Level 1'), findsOneWidget);
@@ -56,7 +61,9 @@ void main() {
     t,
   ) async {
     await _setSize(t, const Size(1280, 720));
-    await t.pumpWidget(PourSortApp(store: MemoryProgressStore()));
+    await t.pumpWidget(
+      PourSortApp(store: MemoryProgressStore(), tutorialStore: _seen()),
+    );
     await t.pumpAndSettle();
     await t.sendKeyEvent(_digits[first.from]);
     await t.sendKeyEvent(_digits[first.to]);
@@ -86,7 +93,7 @@ void main() {
   ) async {
     await _setSize(t, const Size(1280, 720));
     final store = MemoryProgressStore();
-    await t.pumpWidget(PourSortApp(store: store));
+    await t.pumpWidget(PourSortApp(store: store, tutorialStore: _seen()));
     await t.pumpAndSettle();
 
     for (final m in solve(generateLevel(1).tubes)!) {
@@ -114,14 +121,18 @@ void main() {
     t,
   ) async {
     await _setSize(t, const Size(1280, 720));
-    await t.pumpWidget(PourSortApp(store: MemoryProgressStore(4)));
+    await t.pumpWidget(
+      PourSortApp(store: MemoryProgressStore(4), tutorialStore: _seen()),
+    );
     await t.pumpAndSettle();
     expect(find.text('Level 4'), findsOneWidget);
   });
 
   testWidgets('bad store falls back to level 1', (t) async {
     await _setSize(t, const Size(390, 844));
-    await t.pumpWidget(PourSortApp(store: _BrokenStore()));
+    await t.pumpWidget(
+      PourSortApp(store: _BrokenStore(), tutorialStore: _seen()),
+    );
     await t.pumpAndSettle();
     expect(find.text('Level 1'), findsOneWidget);
   });
@@ -140,6 +151,7 @@ void main() {
             PourSortApp(
               key: ValueKey('$level$extra'),
               store: MemoryProgressStore(level),
+              tutorialStore: _seen(),
             ),
           );
           await t.pumpAndSettle();
