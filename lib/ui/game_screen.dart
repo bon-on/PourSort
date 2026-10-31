@@ -232,32 +232,37 @@ class _GameScreenState extends State<GameScreen>
       child: Scaffold(
         body: Stack(
           children: [
-            SafeArea(
-              child: !_ctrl.loaded
-                  ? const Center(child: CircularProgressIndicator())
-                  : Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 960),
-                        child: Column(
-                          children: [
-                            _Hud(ctrl: _ctrl, onHelp: _openTutorial),
-                            Expanded(
-                              child: Stack(
-                                children: [
-                                  _Board(ctrl: _ctrl, pour: _pour),
-                                  if (_ctrl.won) ...[
-                                    Positioned.fill(
-                                      child: Confetti(key: ValueKey(_winKey)),
-                                    ),
-                                    Center(child: _WinCard(ctrl: _ctrl)),
+            // No focus (and so no Tab + Space button presses) reaches the
+            // game while the seen flag loads or the card is open.
+            ExcludeFocus(
+              excluding: _inputBlocked,
+              child: SafeArea(
+                child: !_ctrl.loaded
+                    ? const Center(child: CircularProgressIndicator())
+                    : Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 960),
+                          child: Column(
+                            children: [
+                              _Hud(ctrl: _ctrl, onHelp: _openTutorial),
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    _Board(ctrl: _ctrl, pour: _pour),
+                                    if (_ctrl.won) ...[
+                                      Positioned.fill(
+                                        child: Confetti(key: ValueKey(_winKey)),
+                                      ),
+                                      Center(child: _WinCard(ctrl: _ctrl)),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+              ),
             ),
             if (!_tutorialChecked)
               const Positioned.fill(child: AbsorbPointer()),

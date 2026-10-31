@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +14,14 @@ class _BrokenTutorialStore implements TutorialStore {
   Future<bool> isSeen() async => throw StateError('no prefs');
   @override
   Future<void> markSeen() async => throw StateError('disk full');
+}
+
+class _PendingTutorialStore implements TutorialStore {
+  final Completer<bool> answer = Completer<bool>();
+  @override
+  Future<bool> isSeen() => answer.future;
+  @override
+  Future<void> markSeen() async {}
 }
 
 Future<void> _launch(
@@ -231,6 +241,29 @@ void main() {
       pourSortSteps.first.text,
       reason: 'still on step 1',
     );
+  });
+
+  testWidgets('Tab and Space cannot press HUD buttons while loading', (
+    t,
+  ) async {
+    final store = _PendingTutorialStore();
+    t.view.physicalSize = const Size(390, 844);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      PourSortApp(store: MemoryProgressStore(), tutorialStore: store),
+    );
+    await t.pump(const Duration(milliseconds: 500));
+    for (var i = 0; i < 6; i++) {
+      await t.sendKeyEvent(LogicalKeyboardKey.tab);
+      await t.pump();
+      await t.sendKeyEvent(LogicalKeyboardKey.space);
+      await t.pump();
+    }
+    store.answer.complete(true);
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('tube-5')), findsNothing);
+    expect(find.text('Moves 0'), findsOneWidget);
   });
 
   testWidgets('key repeat does not act on the game after the card closes', (
