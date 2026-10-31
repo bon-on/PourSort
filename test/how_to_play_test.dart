@@ -196,4 +196,57 @@ void main() {
       expect(t.takeException(), isNull);
     });
   }
+  testWidgets('browser keys and shortcuts stay unhandled while open', (
+    t,
+  ) async {
+    final seen = <LogicalKeyboardKey>[];
+    t.view.physicalSize = const Size(390, 844);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      Focus(
+        onKeyEvent: (_, e) {
+          if (e is KeyDownEvent) seen.add(e.logicalKey);
+          return KeyEventResult.ignored;
+        },
+        child: PourSortApp(
+          key: UniqueKey(),
+          store: MemoryProgressStore(),
+          tutorialStore: MemoryTutorialStore(),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+
+    await t.sendKeyEvent(LogicalKeyboardKey.f5);
+    await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await t.sendKeyEvent(LogicalKeyboardKey.enter);
+    await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await t.pump();
+    expect(seen, contains(LogicalKeyboardKey.f5));
+    expect(seen, contains(LogicalKeyboardKey.enter));
+    expect(_overlay, findsOneWidget, reason: 'Ctrl+Enter must not advance');
+    expect(
+      (t.widget(_text) as Text).data,
+      pourSortSteps.first.text,
+      reason: 'still on step 1',
+    );
+  });
+
+  testWidgets('key repeat does not act on the game after the card closes', (
+    t,
+  ) async {
+    await _launch(t, MemoryTutorialStore());
+    // Both keys are held while the card is open, then the card closes.
+    await t.sendKeyDownEvent(digits[first.from]);
+    await t.sendKeyDownEvent(digits[first.to]);
+    await t.tap(find.byKey(const Key('how-to-play-skip')));
+    await t.pump();
+    await t.sendKeyRepeatEvent(digits[first.from]);
+    await t.sendKeyRepeatEvent(digits[first.to]);
+    await t.pump();
+    expect(find.text('Moves 0'), findsOneWidget);
+    await t.sendKeyUpEvent(digits[first.to]);
+    await t.sendKeyUpEvent(digits[first.from]);
+  });
 }

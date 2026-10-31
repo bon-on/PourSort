@@ -38,6 +38,15 @@ String tubeKeyLabel(int i) {
   return i - 10 < letters.length ? letters[i - 10] : '';
 }
 
+/// Keys the browser owns (focus change, reload, Ctrl/Meta/Alt shortcuts) stay
+/// unhandled so the how-to-play card does not block them on web.
+bool _isBrowserShortcut(KeyEvent e) {
+  final k = e.logicalKey;
+  if (k == LogicalKeyboardKey.tab || k == LogicalKeyboardKey.f5) return true;
+  final kb = HardwareKeyboard.instance;
+  return kb.isControlPressed || kb.isMetaPressed || kb.isAltPressed;
+}
+
 class GameScreen extends StatefulWidget {
   const GameScreen({
     super.key,
@@ -175,6 +184,7 @@ class _GameScreenState extends State<GameScreen>
 
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
     if (_tutorialOpen) {
+      if (_isBrowserShortcut(e)) return KeyEventResult.ignored;
       if (e is KeyDownEvent) {
         final k = e.logicalKey;
         if (k == LogicalKeyboardKey.enter ||
