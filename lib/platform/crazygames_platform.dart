@@ -54,7 +54,7 @@ class CrazyGamesPlatform extends GamePlatform {
     try {
       _applySettings(sdk.game.settings);
       sdk.game.addSettingsChangeListener(
-        ((_Settings settings) => _applySettings(settings)).toJS,
+        ((_Settings? settings) => _applySettings(settings)).toJS,
       );
     } catch (error) {
       debugPrint('CrazyGames SDK settings unavailable: $error');

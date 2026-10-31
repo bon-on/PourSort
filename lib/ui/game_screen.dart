@@ -98,6 +98,7 @@ class _GameScreenState extends State<GameScreen>
 
   // User sound toggle; effective mute also includes the platform mute.
   bool _soundMuted = false;
+  bool _soundTouched = false;
   late final SoundFx _sfx = SoundFx(
     isMuted: () => _soundMuted || widget.platform.isAudioMuted,
     onPlay: widget.onSfxPlayed,
@@ -135,11 +136,12 @@ class _GameScreenState extends State<GameScreen>
     try {
       muted = await widget.soundMuteStore.loadMuted();
     } catch (_) {}
-    if (!mounted) return;
+    if (!mounted || _soundTouched) return;
     setState(() => _soundMuted = muted);
   }
 
   void _toggleSound() {
+    _soundTouched = true;
     final muted = !_soundMuted;
     setState(() => _soundMuted = muted);
     () async {
@@ -153,6 +155,7 @@ class _GameScreenState extends State<GameScreen>
   /// Taps a tube and plays one sound for the outcome.
   void _tap(int i) {
     if (!_ctrl.loaded || _ctrl.won) return;
+    if (i < 0 || i >= _ctrl.game.tubes.length) return;
     final before = _ctrl.selected;
     final serial = _ctrl.moveSerial;
     _ctrl.tap(i);

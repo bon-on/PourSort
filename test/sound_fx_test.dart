@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pour_sort/audio/sound_fx.dart';
 import 'package:pour_sort/audio/sound_mute_store.dart';
@@ -18,6 +19,13 @@ class _MemoryMuteStore extends SoundMuteStore {
   Future<bool> loadMuted() async => muted;
   @override
   Future<void> saveMuted(bool value) async => muted = value;
+}
+
+class _ThrowingMuteStore extends SoundMuteStore {
+  @override
+  Future<bool> loadMuted() async => throw StateError('no prefs');
+  @override
+  Future<void> saveMuted(bool value) async => throw StateError('disk full');
 }
 
 class _MutedPlatform extends GamePlatform {
@@ -141,5 +149,35 @@ void main() {
     expect(played.where((s) => s == Sfx.pour).length, moves.length - 1);
     expect(played.last, Sfx.levelClear);
     expect(played.where((s) => s == Sfx.levelClear).length, 1);
+  });
+
+  testWidgets('storage failure keeps sound on', (t) async {
+    final played = await _launch(t, store: _ThrowingMuteStore());
+    expect(find.byIcon(Icons.volume_up_rounded), findsOneWidget);
+    await t.tap(find.byKey(const Key('sound-toggle')));
+    await t.pump();
+    await t.tap(find.byKey(const Key('sound-toggle')));
+    await t.pump();
+    await t.tap(find.byKey(const Key('tube-0')));
+    await t.pump();
+    expect(played, [Sfx.select]);
+  });
+
+  testWidgets('deselect, undo, restart, add tube and bad keys are silent', (
+    t,
+  ) async {
+    final played = await _launch(t);
+    await t.tap(find.byKey(const Key('tube-0')));
+    await t.pump();
+    expect(played, [Sfx.select]);
+    await t.sendKeyEvent(LogicalKeyboardKey.keyI); // no such tube
+    await t.tap(find.byKey(const Key('tube-0'))); // deselect
+    await t.pump();
+    await t.sendKeyEvent(LogicalKeyboardKey.keyA);
+    await t.sendKeyEvent(LogicalKeyboardKey.keyU);
+    await t.sendKeyEvent(LogicalKeyboardKey.keyR);
+    await t.tap(find.byKey(const Key('restart')));
+    await t.pump();
+    expect(played, [Sfx.select]);
   });
 }
