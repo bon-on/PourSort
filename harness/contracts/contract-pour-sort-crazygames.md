@@ -4,6 +4,7 @@ title: Deliver the PourSort CrazyGames web bundle
 status: active
 related_specs:
   - feature-pour-sort-crazygames
+  - feature-sound-effects
 evidence_files:
   - docs/crazygames.md
   - reports/pour-sort-crazygames-verification.md

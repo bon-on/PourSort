@@ -6,6 +6,7 @@ related_specs:
   - feature-harness-apply
   - feature-how-to-play-tutorial
   - feature-game-hub-navigation
+  - feature-sound-effects
 ---
 
 # ADR: Make feature specs and ADRs the top AI source of truth

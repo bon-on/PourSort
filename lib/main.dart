@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'logic/progress_store.dart';
+import 'audio/sound_fx.dart';
+import 'audio/sound_mute_store.dart';
 import 'platform/game_platform.dart';
 import 'ui/game_screen.dart';
 import 'ui/how_to_play.dart';
@@ -18,11 +20,15 @@ class PourSortApp extends StatelessWidget {
     required this.store,
     this.tutorialStore,
     this.platform = const NoopGamePlatform(),
+    this.soundMuteStore = const SoundMuteStore(),
+    this.onSfxPlayed,
   });
 
   final ProgressStore store;
   final TutorialStore? tutorialStore;
   final GamePlatform platform;
+  final SoundMuteStore soundMuteStore;
+  final void Function(Sfx sfx)? onSfxPlayed;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +48,8 @@ class PourSortApp extends StatelessWidget {
         store: store,
         tutorialStore: tutorialStore,
         platform: platform,
+        soundMuteStore: soundMuteStore,
+        onSfxPlayed: onSfxPlayed,
       ),
     );
   }

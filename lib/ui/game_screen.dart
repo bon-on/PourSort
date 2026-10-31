@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../audio/sound_fx.dart';
+import '../audio/sound_mute_store.dart';
 import '../logic/pour_game.dart';
 import '../logic/progress_store.dart';
 import '../platform/game_platform.dart';
@@ -53,12 +55,20 @@ class GameScreen extends StatefulWidget {
     required this.store,
     this.tutorialStore,
     this.platform = const NoopGamePlatform(),
+    this.soundMuteStore = const SoundMuteStore(),
+    this.onSfxPlayed,
   });
 
   final ProgressStore store;
 
   /// Receives gameplay start/stop events (CrazyGames SDK on portal builds).
   final GamePlatform platform;
+
+  /// Persisted user mute choice; tests inject a fake.
+  final SoundMuteStore soundMuteStore;
+
+  /// Called for every sound that is actually played (not muted); for tests.
+  final void Function(Sfx sfx)? onSfxPlayed;
 
   /// Defaults to [PrefsTutorialStore].
   final TutorialStore? tutorialStore;
@@ -86,6 +96,13 @@ class _GameScreenState extends State<GameScreen>
   late final TutorialStore _tutorialStore =
       widget.tutorialStore ?? PrefsTutorialStore();
 
+  // User sound toggle; effective mute also includes the platform mute.
+  bool _soundMuted = false;
+  late final SoundFx _sfx = SoundFx(
+    isMuted: () => _soundMuted || widget.platform.isAudioMuted,
+    onPlay: widget.onSfxPlayed,
+  );
+
   bool get _inputBlocked => !_tutorialChecked || _tutorialOpen;
 
   // Whether the platform currently believes gameplay is running.
@@ -110,6 +127,43 @@ class _GameScreenState extends State<GameScreen>
     _ctrl.addListener(_onChange);
     _ctrl.init();
     _checkTutorial();
+    _loadSoundMuted();
+  }
+
+  Future<void> _loadSoundMuted() async {
+    var muted = false;
+    try {
+      muted = await widget.soundMuteStore.loadMuted();
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() => _soundMuted = muted);
+  }
+
+  void _toggleSound() {
+    final muted = !_soundMuted;
+    setState(() => _soundMuted = muted);
+    () async {
+      try {
+        await widget.soundMuteStore.saveMuted(muted);
+      } catch (_) {}
+    }();
+    _focus.requestFocus();
+  }
+
+  /// Taps a tube and plays one sound for the outcome.
+  void _tap(int i) {
+    if (!_ctrl.loaded || _ctrl.won) return;
+    final before = _ctrl.selected;
+    final serial = _ctrl.moveSerial;
+    _ctrl.tap(i);
+    final after = _ctrl.selected;
+    if (_ctrl.moveSerial != serial) {
+      _sfx.play(_ctrl.won ? Sfx.levelClear : Sfx.pour);
+    } else if (after != null) {
+      _sfx.play(Sfx.select);
+    } else if (before != i) {
+      _sfx.play(Sfx.invalid);
+    }
   }
 
   Future<void> _checkTutorial() async {
@@ -179,6 +233,7 @@ class _GameScreenState extends State<GameScreen>
     _ctrl.dispose();
     _pour.dispose();
     _focus.dispose();
+    _sfx.dispose();
     super.dispose();
   }
 
@@ -218,7 +273,7 @@ class _GameScreenState extends State<GameScreen>
     } else {
       final idx = _digitKeys.indexOf(k);
       if (idx < 0) return KeyEventResult.ignored;
-      _ctrl.tap(idx);
+      _tap(idx);
     }
     return KeyEventResult.handled;
   }
@@ -244,11 +299,20 @@ class _GameScreenState extends State<GameScreen>
                           constraints: const BoxConstraints(maxWidth: 960),
                           child: Column(
                             children: [
-                              _Hud(ctrl: _ctrl, onHelp: _openTutorial),
+                              _Hud(
+                                ctrl: _ctrl,
+                                onHelp: _openTutorial,
+                                soundMuted: _soundMuted,
+                                onToggleSound: _toggleSound,
+                              ),
                               Expanded(
                                 child: Stack(
                                   children: [
-                                    _Board(ctrl: _ctrl, pour: _pour),
+                                    _Board(
+                                      ctrl: _ctrl,
+                                      pour: _pour,
+                                      onTap: _tap,
+                                    ),
                                     if (_ctrl.won) ...[
                                       Positioned.fill(
                                         child: Confetti(key: ValueKey(_winKey)),
@@ -283,9 +347,16 @@ class _GameScreenState extends State<GameScreen>
 }
 
 class _Hud extends StatelessWidget {
-  const _Hud({required this.ctrl, required this.onHelp});
+  const _Hud({
+    required this.ctrl,
+    required this.onHelp,
+    required this.soundMuted,
+    required this.onToggleSound,
+  });
   final GameController ctrl;
   final VoidCallback onHelp;
+  final bool soundMuted;
+  final VoidCallback onToggleSound;
 
   @override
   Widget build(BuildContext context) {
@@ -343,6 +414,17 @@ class _Hud extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               IconButton.filledTonal(
+                key: const Key('sound-toggle'),
+                tooltip: soundMuted ? 'Sound off' : 'Sound on',
+                onPressed: onToggleSound,
+                icon: Icon(
+                  soundMuted
+                      ? Icons.volume_off_rounded
+                      : Icons.volume_up_rounded,
+                ),
+              ),
+              const SizedBox(width: 6),
+              IconButton.filledTonal(
                 key: const Key('how-to-play-button'),
                 tooltip: 'How to play',
                 onPressed: onHelp,
@@ -357,9 +439,10 @@ class _Hud extends StatelessWidget {
 }
 
 class _Board extends StatelessWidget {
-  const _Board({required this.ctrl, required this.pour});
+  const _Board({required this.ctrl, required this.pour, required this.onTap});
   final GameController ctrl;
   final AnimationController pour;
+  final void Function(int index) onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -402,6 +485,7 @@ class _Board extends StatelessWidget {
                       segH: segH,
                       ctrl: ctrl,
                       pour: pour,
+                      onTap: onTap,
                     ),
                 ],
               ),
@@ -420,8 +504,10 @@ class _TubeCell extends StatelessWidget {
     required this.segH,
     required this.ctrl,
     required this.pour,
+    required this.onTap,
   });
 
+  final void Function(int index) onTap;
   final int index;
   final double width;
   final double segH;
@@ -440,7 +526,7 @@ class _TubeCell extends StatelessWidget {
       child: GestureDetector(
         key: Key('tube-$index'),
         behavior: HitTestBehavior.opaque,
-        onTap: () => ctrl.tap(index),
+        onTap: () => onTap(index),
         child: SizedBox(
           width: width,
           height: tubeHeight(segH) + lift + 20,

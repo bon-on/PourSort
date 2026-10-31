@@ -6,6 +6,7 @@ related_specs:
   - feature-pour-sort-mvp
   - feature-how-to-play-tutorial
   - feature-game-hub-navigation
+  - feature-sound-effects
 evidence_files:
   - reports/pour-sort-mvp-verification.md
 ---
