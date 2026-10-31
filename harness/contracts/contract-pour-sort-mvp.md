@@ -5,6 +5,7 @@ status: active
 related_specs:
   - feature-pour-sort-mvp
   - feature-how-to-play-tutorial
+  - feature-game-hub-navigation
 evidence_files:
   - reports/pour-sort-mvp-verification.md
 ---
