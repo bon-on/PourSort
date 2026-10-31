@@ -162,9 +162,11 @@ class _GameScreenState extends State<GameScreen>
     final after = _ctrl.selected;
     if (_ctrl.moveSerial != serial) {
       _sfx.play(_ctrl.won ? Sfx.levelClear : Sfx.pour);
-    } else if (after != null) {
-      _sfx.play(Sfx.select);
+    } else if (before == null) {
+      // First pick: select a tube, or reject an empty one.
+      _sfx.play(after != null ? Sfx.select : Sfx.invalid);
     } else if (before != i) {
+      // A target that cannot take the pour (the controller may re-select it).
       _sfx.play(Sfx.invalid);
     }
   }

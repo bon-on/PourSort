@@ -180,4 +180,28 @@ void main() {
     await t.pump();
     expect(played, [Sfx.select]);
   });
+
+  testWidgets('a target that cannot take the pour plays invalid', (t) async {
+    final played = await _launch(t);
+    final tubes = generateLevel(1).tubes;
+    int? from, to;
+    for (var i = 0; i < tubes.length && to == null; i++) {
+      for (var j = 0; j < tubes.length; j++) {
+        if (i != j &&
+            tubes[i].isNotEmpty &&
+            tubes[j].isNotEmpty &&
+            tubes[i].last != tubes[j].last) {
+          from = i;
+          to = j;
+          break;
+        }
+      }
+    }
+    expect(to, isNotNull);
+    await t.tap(find.byKey(Key('tube-$from')));
+    await t.pump();
+    await t.tap(find.byKey(Key('tube-$to')));
+    await t.pump();
+    expect(played, [Sfx.select, Sfx.invalid]);
+  });
 }

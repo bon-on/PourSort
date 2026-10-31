@@ -35,9 +35,11 @@ CrazyGames, GamePix) and on iOS/Android, and a way to turn them off.
   Android MediaPlayer with USAGE_GAME. Missing plugins are swallowed.
 - Hook points are in `GameScreen`, once per user tap or key press on a tube:
   a new selection plays `select`; a pour plays `pour`; a pour that clears the
-  level plays `level_clear`; a tap that cannot select or pour (empty tube with
-  nothing selected, or an invalid target that leaves nothing selected) plays
-  `invalid`; deselecting, undo, restart, add tube and the tutorial are silent.
+  level plays `level_clear`; a tap that cannot select (empty tube with nothing
+  selected) or, with a tube selected, a target that cannot take the pour
+  (wrong top color or full) plays `invalid`, while the controller keeps its
+  re-select behavior; deselecting, undo, restart, add tube and the tutorial
+  are silent.
 - Mute: user toggle persisted in `shared_preferences` key `sound_muted_v1`
   (default on). Effective mute = user mute OR `GamePlatform.isAudioMuted`
   (CrazyGames SDK `game.settings.muteAudio`, updated through
