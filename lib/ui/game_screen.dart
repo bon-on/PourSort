@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../logic/pour_game.dart';
 import '../logic/progress_store.dart';
+import '../platform/game_platform.dart';
 import 'confetti.dart';
 import 'game_controller.dart';
 import 'how_to_play.dart';
@@ -38,9 +39,17 @@ String tubeKeyLabel(int i) {
 }
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key, required this.store, this.tutorialStore});
+  const GameScreen({
+    super.key,
+    required this.store,
+    this.tutorialStore,
+    this.platform = const NoopGamePlatform(),
+  });
 
   final ProgressStore store;
+
+  /// Receives gameplay start/stop events (CrazyGames SDK on portal builds).
+  final GamePlatform platform;
 
   /// Defaults to [PrefsTutorialStore].
   final TutorialStore? tutorialStore;
@@ -70,6 +79,22 @@ class _GameScreenState extends State<GameScreen>
 
   bool get _inputBlocked => !_tutorialChecked || _tutorialOpen;
 
+  // Whether the platform currently believes gameplay is running.
+  bool _gameplayActive = false;
+
+  /// Reports gameplay start/stop to the platform exactly on transitions.
+  void _syncGameplay() {
+    final wantActive =
+        _ctrl.loaded && _tutorialChecked && !_tutorialOpen && !_ctrl.won;
+    if (wantActive == _gameplayActive) return;
+    _gameplayActive = wantActive;
+    if (wantActive) {
+      widget.platform.gameplayStart();
+    } else {
+      widget.platform.gameplayStop();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -91,6 +116,7 @@ class _GameScreenState extends State<GameScreen>
       _tutorialOpen = !seen;
       _tutorialStep = 0;
     });
+    _syncGameplay();
   }
 
   void _openTutorial() {
@@ -98,11 +124,13 @@ class _GameScreenState extends State<GameScreen>
       _tutorialOpen = true;
       _tutorialStep = 0;
     });
+    _syncGameplay();
     _focus.requestFocus();
   }
 
   void _closeTutorial() {
     setState(() => _tutorialOpen = false);
+    _syncGameplay();
     _focus.requestFocus();
     () async {
       try {
@@ -132,6 +160,7 @@ class _GameScreenState extends State<GameScreen>
     }
     if (_ctrl.loaded && _ctrl.won && !_wasWon) _winKey++;
     _wasWon = _ctrl.loaded && _ctrl.won;
+    _syncGameplay();
     if (mounted) setState(() {});
   }
 

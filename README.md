@@ -32,6 +32,10 @@ flutter test
 flutter build web --release --base-href /PourSort/
 ```
 
+## CrazyGames build
+
+`tool/build_crazygames.sh` builds `build/pour-sort-crazygames.zip` for the CrazyGames portal (SDK gameplay events, no ads). See `docs/crazygames.md`.
+
 ## Project layout
 
 - `lib/logic/` - rules, solver, level generator, progress store (no widgets)
