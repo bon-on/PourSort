@@ -32,6 +32,8 @@ We want a short, skippable tutorial on the first launch only.
 - Keyboard while open: Enter/Space = Next/Play, Escape = Skip, Left/Right =
   previous/next step. No key reaches the game while it is open (tube keys,
   U, R, A, Enter/N), and taps are blocked by the scrim.
+- Tab, F5 and Ctrl/Meta/Alt shortcuts are left unhandled while it is open so
+  the browser keeps reload and focus behavior.
 - Storage failures never break play: a read failure shows the tutorial, a write
   failure just closes it.
 - Text is English. PourSort has no clock, so no timer handling is needed.
