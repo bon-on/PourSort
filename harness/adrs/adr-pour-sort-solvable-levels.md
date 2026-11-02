@@ -4,6 +4,7 @@ title: Generate levels by shuffling full tubes and verifying with a solver
 status: accepted
 related_specs:
   - feature-pour-sort-mvp
+  - feature-retention-polish
 ---
 
 # ADR: Generate levels by shuffling full tubes and verifying with a solver

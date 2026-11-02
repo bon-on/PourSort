@@ -5,6 +5,7 @@ status: accepted
 related_specs:
   - feature-pour-sort-crazygames
   - feature-sound-effects
+  - feature-retention-polish
 ---
 
 # ADR: Use a build flag and a platform adapter for the CrazyGames build

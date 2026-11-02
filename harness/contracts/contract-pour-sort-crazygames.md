@@ -5,6 +5,7 @@ status: active
 related_specs:
   - feature-pour-sort-crazygames
   - feature-sound-effects
+  - feature-retention-polish
 evidence_files:
   - docs/crazygames.md
   - reports/pour-sort-crazygames-verification.md
