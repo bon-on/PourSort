@@ -179,7 +179,7 @@ void main() {
   }
 }
 
-class _BrokenStore implements ProgressStore {
+class _BrokenStore extends ProgressStore {
   @override
   Future<int> loadLevel() async => throw StateError('corrupt');
 
