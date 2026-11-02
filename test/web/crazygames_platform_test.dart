@@ -70,6 +70,26 @@ void main() {
     },
   );
 
+  test('mute listener fires only when the portal mute changes', () async {
+    final sdk = _FakeSdk(muteAudio: false);
+    final platform = CrazyGamesPlatform();
+    await platform.initialize();
+    var calls = 0;
+    platform.setAudioMuteListener(() => calls++);
+    void send(bool muted) => sdk.listener!.callAsFunction(
+      null,
+      JSObject()..setProperty('muteAudio'.toJS, muted.toJS),
+    );
+    send(false);
+    expect(calls, 0);
+    send(true);
+    expect(calls, 1);
+    expect(platform.isAudioMuted, isTrue);
+    platform.setAudioMuteListener(null);
+    send(false);
+    expect(calls, 1);
+  });
+
   test('SDK without settings is not muted and stays enabled', () async {
     final sdk = _FakeSdk();
     final platform = CrazyGamesPlatform();

@@ -16,6 +16,7 @@ class CrazyGamesPlatform extends GamePlatform {
 
   _Sdk? _sdk;
   bool _settingsMuted = false;
+  void Function()? _muteListener;
 
   @override
   Future<void> initialize() async {
@@ -49,6 +50,11 @@ class CrazyGamesPlatform extends GamePlatform {
   @override
   bool get isAudioMuted => _settingsMuted;
 
+  @override
+  void setAudioMuteListener(void Function()? listener) {
+    _muteListener = listener;
+  }
+
   /// Settings are optional: older SDK builds without them stay playable.
   void _watchSettings(_Sdk sdk) {
     try {
@@ -62,7 +68,14 @@ class CrazyGamesPlatform extends GamePlatform {
   }
 
   void _applySettings(_Settings? settings) {
-    _settingsMuted = settings?.muteAudio ?? false;
+    final muted = settings?.muteAudio ?? false;
+    if (muted == _settingsMuted) return;
+    _settingsMuted = muted;
+    try {
+      _muteListener?.call();
+    } catch (error) {
+      debugPrint('Audio mute listener failed: $error');
+    }
   }
 
   void _call(void Function(_Sdk sdk) action) {

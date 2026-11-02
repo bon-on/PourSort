@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pour_sort/audio/sound_fx.dart';
 import 'package:pour_sort/audio/sound_mute_store.dart';
+import 'package:pour_sort/audio/web_sound_stub.dart';
 import 'package:pour_sort/logic/level_generator.dart';
 import 'package:pour_sort/logic/progress_store.dart';
 import 'package:pour_sort/logic/solver.dart';
@@ -26,6 +28,28 @@ class _ThrowingMuteStore extends SoundMuteStore {
   Future<bool> loadMuted() async => throw StateError('no prefs');
   @override
   Future<void> saveMuted(bool value) async => throw StateError('disk full');
+}
+
+class _FakeWebSound extends WebSound {
+  bool allow = true;
+  final List<String> calls = <String>[];
+  @override
+  Future<bool> loop(String assetKey, double volume) async {
+    calls.add('loop');
+    return allow;
+  }
+
+  @override
+  Future<bool> resumeLoop() async {
+    calls.add('resume');
+    return allow;
+  }
+
+  @override
+  void pauseLoop() => calls.add('pause');
+
+  @override
+  void stopLoop() => calls.add('stop');
 }
 
 class _MutedPlatform extends GamePlatform {
@@ -81,6 +105,70 @@ void main() {
     fx.play(Sfx.pour);
     expect(played, [Sfx.pour]);
     fx.dispose();
+  });
+
+  test('music loop asset is small, 16 kHz mono 16-bit', () {
+    final bytes = File(SoundFx.musicAsset).readAsBytesSync();
+    expect(bytes.length, lessThanOrEqualTo(1024 * 1024));
+    final header = bytes.buffer.asByteData();
+    expect(header.getUint16(22, Endian.little), 1); // channels
+    expect(header.getUint32(24, Endian.little), 16000); // sample rate
+    expect(header.getUint16(34, Endian.little), 16); // bits
+  });
+
+  test('native music follows mute and visibility', () {
+    var muted = false;
+    final fx = SoundFx(isMuted: () => muted, isWeb: false);
+    expect(fx.isMusicPlaying, isFalse);
+    fx.startMusic();
+    expect(fx.isMusicPlaying, isTrue);
+    muted = true;
+    fx.refreshMute();
+    expect(fx.isMusicPlaying, isFalse);
+    expect(fx.isMusicWanted, isTrue);
+    muted = false;
+    fx.refreshMute();
+    expect(fx.isMusicPlaying, isTrue);
+    fx.setAppVisible(false);
+    expect(fx.isMusicPlaying, isFalse);
+    fx.setAppVisible(true);
+    expect(fx.isMusicPlaying, isTrue);
+    fx.stopMusic();
+    expect(fx.isMusicPlaying, isFalse);
+    fx.dispose();
+  });
+
+  test('web music waits for the first input and pauses when hidden', () async {
+    final web = _FakeWebSound();
+    final fx = SoundFx(webSound: web, isWeb: true);
+    fx.startMusic();
+    await Future<void>.delayed(Duration.zero);
+    expect(web.calls, isEmpty);
+    fx.onUserInput();
+    await Future<void>.delayed(Duration.zero);
+    expect(web.calls, ['loop']);
+    expect(fx.isMusicPlaying, isTrue);
+    fx.setAppVisible(false);
+    expect(web.calls.last, 'pause');
+    fx.setAppVisible(true);
+    await Future<void>.delayed(Duration.zero);
+    expect(web.calls.last, 'resume');
+    expect(fx.isMusicPlaying, isTrue);
+    fx.stopMusic();
+    expect(web.calls.last, 'stop');
+  });
+
+  test('web music retries after a refused start', () async {
+    final web = _FakeWebSound()..allow = false;
+    final fx = SoundFx(webSound: web, isWeb: true);
+    fx.startMusic();
+    fx.onUserInput();
+    await Future<void>.delayed(Duration.zero);
+    expect(fx.isMusicPlaying, isFalse);
+    web.allow = true;
+    fx.onUserInput();
+    await Future<void>.delayed(Duration.zero);
+    expect(fx.isMusicPlaying, isTrue);
   });
 
   testWidgets('toggle flips icon, tooltip and persists', (t) async {
