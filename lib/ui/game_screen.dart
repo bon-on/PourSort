@@ -97,6 +97,7 @@ class _GameScreenState extends State<GameScreen>
   int? _seenSelected;
   int _combo = 0;
   int _lastCompleteSerial = -10;
+  int _seenUndoSerial = 0;
 
   // Input stays blocked until the tutorial flag has been read.
   bool _tutorialChecked = false;
@@ -337,6 +338,8 @@ class _GameScreenState extends State<GameScreen>
       _seenLevelSerial = _ctrl.levelSerial;
       _seenSerial = _ctrl.moveSerial;
       _combo = 0;
+      _lastCompleteSerial = -10;
+      _seenUndoSerial = _ctrl.undoSerial;
       _fx.clear();
       _fx.resetLift();
       _seenSelected = null;
@@ -363,9 +366,13 @@ class _GameScreenState extends State<GameScreen>
       if (completes && _combo >= 2 && !_ctrl.won) {
         _fx.showBanner('Combo x$_combo', delay: BoardFx.pourDuration * 0.8);
       }
-    } else if (_ctrl.moveSerial == _seenSerial && _ctrl.lastMove == null) {
-      // Undo (or a fresh level): effects would show stale tubes.
-      if (_fx.pours.isNotEmpty) _fx.clear();
+    }
+    if (_ctrl.undoSerial != _seenUndoSerial) {
+      // Undo: every effect would show stale tubes, and a redo is no combo.
+      _seenUndoSerial = _ctrl.undoSerial;
+      _fx.clear();
+      _combo = 0;
+      _lastCompleteSerial = -10;
     }
     if (_ctrl.selected != _seenSelected) {
       _seenSelected = _ctrl.selected;

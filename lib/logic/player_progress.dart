@@ -81,7 +81,7 @@ class WinOutcome {
 /// Tuning: a level takes one to three minutes. A first clear earns
 /// [firstClearXp] + [xpPerStar] per star (40..70 XP); replays earn
 /// [replayXp] plus [xpPerStar] for each star above the previous record, so
-/// replaying cannot be farmed. Reaching player level L+1 costs
+/// a replay pays only a small flat amount. Reaching player level L+1 costs
 /// 100 + 40 * (L - 1) XP, so with about 55 XP per level the themes open
 /// after roughly 5 (Lv3), 17 (Lv6) and 43 (Lv10) cleared levels.
 class PlayerProgress {

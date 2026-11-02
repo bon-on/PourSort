@@ -95,7 +95,13 @@ void main() {
     }
   });
 
-  for (final size in const [Size(1280, 720), Size(1366, 768), Size(390, 844)]) {
+  for (final size in const [
+    Size(1280, 720),
+    Size(1366, 768),
+    Size(390, 844),
+    Size(844, 390),
+    Size(320, 640),
+  ]) {
     testWidgets('screen, overlays and result fit $size', (t) async {
       await _launch(t, size);
       expect(t.takeException(), isNull);
@@ -109,6 +115,7 @@ void main() {
       await _solve(t, 1);
       expect(find.byKey(const Key('win-card')), findsOneWidget);
       final r = t.getRect(find.byKey(const Key('next-level')));
+      expect(r.top, greaterThanOrEqualTo(0));
       expect(r.bottom, lessThanOrEqualTo(size.height));
       expect(t.takeException(), isNull);
     });
@@ -180,6 +187,41 @@ void main() {
     await t.sendKeyEvent(LogicalKeyboardKey.enter);
     await t.pumpAndSettle();
     expect(find.text('Level 3'), findsOneWidget);
+  });
+
+  testWidgets('level select keeps the keyboard cursor visible', (t) async {
+    await _launch(t, const Size(1280, 720), progress: _veteran(highest: 80));
+    await t.sendKeyEvent(LogicalKeyboardKey.keyL);
+    await t.pumpAndSettle();
+    await t.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    for (var i = 0; i < 4; i++) {
+      await t.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    }
+    await t.pumpAndSettle();
+    // Cursor moved from 80 up to 55 (5 rows); its tile must be on screen.
+    final r = t.getRect(find.byKey(const Key('level-tile-55')));
+    expect(r.top, greaterThanOrEqualTo(0));
+    expect(r.bottom, lessThanOrEqualTo(720));
+    for (var i = 0; i < 12; i++) {
+      await t.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    }
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('level-tile-1')), findsOneWidget);
+    await t.sendKeyEvent(LogicalKeyboardKey.enter);
+    await t.pumpAndSettle();
+    expect(find.text('Level 1'), findsOneWidget, reason: 'cursor clamps at 1');
+  });
+
+  testWidgets('win card Levels button opens level select', (t) async {
+    await _launch(t, const Size(390, 844));
+    await _solve(t, 1);
+    await t.tap(find.byKey(const Key('win-levels')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('level-select')), findsOneWidget);
+    await t.tap(find.byKey(const Key('level-tile-2')));
+    await t.pumpAndSettle();
+    expect(find.text('Level 2'), findsOneWidget);
+    expect(find.byKey(const Key('win-card')), findsNothing);
   });
 
   testWidgets('themes: locked cannot be picked, unlocked persists', (t) async {

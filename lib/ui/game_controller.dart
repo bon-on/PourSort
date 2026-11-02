@@ -20,6 +20,9 @@ class GameController extends ChangeNotifier {
   PourMove? lastMove;
   int moveSerial = 0;
 
+  /// Bumped on every successful undo, so effects can reset.
+  int undoSerial = 0;
+
   /// Bumped whenever a level is (re)loaded, so effects can reset.
   int levelSerial = 0;
   bool loaded = false;
@@ -140,6 +143,7 @@ class GameController extends ChangeNotifier {
   void undo() {
     if (won) return;
     if (game.undo() != null) {
+      undoSerial++;
       selected = null;
       lastMove = null;
       notifyListeners();

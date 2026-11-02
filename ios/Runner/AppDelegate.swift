@@ -32,7 +32,9 @@ import UIKit
     else {
       return
     }
-    if type == .ended, musicWanted, let player = musicPlayer, !player.isPlaying {
+    let rawOptions = notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+    let shouldResume = AVAudioSession.InterruptionOptions(rawValue: rawOptions).contains(.shouldResume)
+    if type == .ended, shouldResume, musicWanted, let player = musicPlayer, !player.isPlaying {
       configureAudioSession()
       player.play()
     }

@@ -47,7 +47,9 @@ class PrefsProgressStore extends ProgressStore {
     final raw = _read(prefs, progressKey);
     if (raw is String) {
       try {
-        return PlayerProgress.fromJson(jsonDecode(raw));
+        final decoded = jsonDecode(raw);
+        // Anything but an object is corrupt: try the legacy value first.
+        if (decoded is Map) return PlayerProgress.fromJson(decoded);
       } catch (_) {
         // Corrupt JSON: fall through to the legacy value, then defaults.
       }

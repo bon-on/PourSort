@@ -34,10 +34,12 @@ class WinCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final o = outcome;
     final best = progress.bestMovesFor(o.level);
+    // Short landscape screens get a denser card so "Next level" stays visible.
+    final compact = MediaQuery.sizeOf(context).height < 560;
     return ModalCard(
       palette: palette,
       scrim: 0x59000000,
-      maxWidth: 400,
+      maxWidth: compact ? 520 : 400,
       cardKey: const Key('win-card'),
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: animate ? 0 : 1, end: 1),
@@ -50,7 +52,7 @@ class WinCard extends StatelessWidget {
             opacity: ((v - 0.2) / 0.15).clamp(0.0, 1.0),
             child: Transform.scale(
               scale: 0.85 + 0.15 * appear,
-              child: _body(v, best),
+              child: _body(v, best, compact),
             ),
           );
         },
@@ -58,7 +60,7 @@ class WinCard extends StatelessWidget {
     );
   }
 
-  Widget _body(double v, int best) {
+  Widget _body(double v, int best, bool compact) {
     final o = outcome;
     final lvlProgress = progress.xpForNextLevel == 0
         ? 0.0
@@ -69,7 +71,9 @@ class WinCard extends StatelessWidget {
       fontWeight: FontWeight.w600,
     );
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
+      padding: compact
+          ? const EdgeInsets.fromLTRB(18, 12, 18, 12)
+          : const EdgeInsets.fromLTRB(22, 20, 22, 18),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -79,12 +83,12 @@ class WinCard extends StatelessWidget {
               'Level complete!',
               style: TextStyle(
                 color: palette.text,
-                fontSize: 28,
+                fontSize: compact ? 22 : 28,
                 fontWeight: FontWeight.w900,
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: compact ? 4 : 10),
           Row(
             key: const Key('win-stars'),
             mainAxisSize: MainAxisSize.min,
@@ -97,7 +101,7 @@ class WinCard extends StatelessWidget {
                     bottom: i == 1 ? 10 : 0,
                   ),
                   child: StarShape(
-                    size: i == 1 ? 56 : 46,
+                    size: (i == 1 ? 56 : 46) * (compact ? 0.7 : 1.0),
                     filled: i < o.stars,
                     palette: palette,
                     scale: i < o.stars
@@ -122,7 +126,7 @@ class WinCard extends StatelessWidget {
               'Best $best moves',
               style: textStyle.copyWith(color: palette.textSecondary),
             ),
-          if (o.stars < 3)
+          if (o.stars < 3 && !compact)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
@@ -136,7 +140,7 @@ class WinCard extends StatelessWidget {
                 ),
               ),
             ),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 8 : 14),
           Row(
             children: [
               Text(
@@ -184,47 +188,58 @@ class WinCard extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: PillButton(
-                  key: const Key('replay'),
-                  label: 'Replay',
-                  icon: Icons.refresh_rounded,
-                  palette: palette,
-                  onPressed: onReplay,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: PillButton(
-                  key: const Key('win-levels'),
-                  label: 'Levels',
-                  icon: Icons.grid_view_rounded,
-                  palette: palette,
-                  onPressed: onLevels,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: PillButton(
-              key: const Key('next-level'),
-              label: 'Next level',
-              icon: Icons.arrow_forward_rounded,
-              palette: palette,
-              primary: true,
-              height: 52,
-              onPressed: onNext,
+          SizedBox(height: compact ? 10 : 18),
+          if (compact)
+            Row(
+              children: [
+                Expanded(child: _replay()),
+                const SizedBox(width: 8),
+                Expanded(child: _levels()),
+                const SizedBox(width: 8),
+                Expanded(flex: 2, child: _next()),
+              ],
+            )
+          else ...[
+            Row(
+              children: [
+                Expanded(child: _replay()),
+                const SizedBox(width: 10),
+                Expanded(child: _levels()),
+              ],
             ),
-          ),
+            const SizedBox(height: 10),
+            SizedBox(width: double.infinity, child: _next()),
+          ],
         ],
       ),
     );
   }
+
+  Widget _replay() => PillButton(
+    key: const Key('replay'),
+    label: 'Replay',
+    icon: Icons.refresh_rounded,
+    palette: palette,
+    onPressed: onReplay,
+  );
+
+  Widget _levels() => PillButton(
+    key: const Key('win-levels'),
+    label: 'Levels',
+    icon: Icons.grid_view_rounded,
+    palette: palette,
+    onPressed: onLevels,
+  );
+
+  Widget _next() => PillButton(
+    key: const Key('next-level'),
+    label: 'Next level',
+    icon: Icons.arrow_forward_rounded,
+    palette: palette,
+    primary: true,
+    height: 52,
+    onPressed: onNext,
+  );
 
   Widget _chip(String text, Color bg, Color fg) => DecoratedBox(
     decoration: BoxDecoration(
@@ -246,7 +261,7 @@ class WinCard extends StatelessWidget {
 int levelSelectCount(PlayerProgress p) =>
     ((p.highestLevel + 5) / 20).ceil() * 20;
 
-class LevelSelectOverlay extends StatelessWidget {
+class LevelSelectOverlay extends StatefulWidget {
   const LevelSelectOverlay({
     super.key,
     required this.progress,
@@ -271,10 +286,51 @@ class LevelSelectOverlay extends StatelessWidget {
   static const int columns = 5;
 
   @override
+  State<LevelSelectOverlay> createState() => _LevelSelectOverlayState();
+}
+
+class _LevelSelectOverlayState extends State<LevelSelectOverlay> {
+  static const double _rowExtent = 68 + 8;
+  late final ScrollController _scroll = ScrollController(
+    initialScrollOffset: math.max(
+      0,
+      ((widget.cursor - 1) ~/ LevelSelectOverlay.columns - 2) * _rowExtent,
+    ),
+  );
+
+  @override
+  void didUpdateWidget(LevelSelectOverlay old) {
+    super.didUpdateWidget(old);
+    if (old.cursor != widget.cursor) _reveal();
+  }
+
+  /// Keeps the keyboard cursor's row inside the viewport.
+  void _reveal() {
+    if (!_scroll.hasClients) return;
+    final pos = _scroll.position;
+    final row = (widget.cursor - 1) ~/ LevelSelectOverlay.columns;
+    final top = row * _rowExtent;
+    final bottom = top + _rowExtent;
+    var target = pos.pixels;
+    if (top < pos.pixels) target = top;
+    if (bottom > pos.pixels + pos.viewportDimension) {
+      target = bottom - pos.viewportDimension;
+    }
+    target = target.clamp(pos.minScrollExtent, pos.maxScrollExtent);
+    if (target != pos.pixels) _scroll.jumpTo(target);
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final count = levelSelectCount(progress);
+    final count = levelSelectCount(widget.progress);
     return ModalCard(
-      palette: palette,
+      palette: widget.palette,
       maxWidth: 460,
       cardKey: const Key('level-select'),
       child: Padding(
@@ -287,34 +343,29 @@ class LevelSelectOverlay extends StatelessWidget {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  StarShape(size: 20, filled: true, palette: palette),
+                  StarShape(size: 20, filled: true, palette: widget.palette),
                   const SizedBox(width: 4),
                   Text(
-                    '${progress.totalStars}',
+                    '${widget.progress.totalStars}',
                     style: TextStyle(
-                      color: palette.text,
+                      color: widget.palette.text,
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
                     ),
                   ),
                 ],
               ),
-              palette: palette,
-              onClose: onClose,
+              palette: widget.palette,
+              onClose: widget.onClose,
               closeKey: const Key('level-select-close'),
             ),
             const SizedBox(height: 12),
             Flexible(
               child: GridView.builder(
                 shrinkWrap: true,
-                controller: ScrollController(
-                  initialScrollOffset: math.max(
-                    0,
-                    ((cursor - 1) ~/ columns - 2) * 76.0,
-                  ),
-                ),
+                controller: _scroll,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: columns,
+                  crossAxisCount: LevelSelectOverlay.columns,
                   mainAxisSpacing: 8,
                   crossAxisSpacing: 8,
                   mainAxisExtent: 68,
@@ -330,17 +381,17 @@ class LevelSelectOverlay extends StatelessWidget {
   }
 
   Widget _tile(int level) {
-    final unlocked = progress.isUnlocked(level);
-    final stars = progress.starsFor(level);
-    final isCursor = level == cursor;
-    final isCurrent = level == current;
+    final unlocked = widget.progress.isUnlocked(level);
+    final stars = widget.progress.starsFor(level);
+    final isCursor = level == widget.cursor;
+    final isCurrent = level == widget.current;
     final bg = unlocked
-        ? (isCurrent ? palette.accent : palette.button)
-        : palette.textSecondary.withValues(alpha: 0.15);
-    final fg = isCurrent ? palette.accentInk : palette.buttonInk;
+        ? (isCurrent ? widget.palette.accent : widget.palette.button)
+        : widget.palette.textSecondary.withValues(alpha: 0.15);
+    final fg = isCurrent ? widget.palette.accentInk : widget.palette.buttonInk;
     return GestureDetector(
       key: Key('level-tile-$level'),
-      onTap: unlocked ? () => onPick(level) : null,
+      onTap: unlocked ? () => widget.onPick(level) : null,
       child: MouseRegion(
         cursor: unlocked ? SystemMouseCursors.click : SystemMouseCursors.basic,
         child: AnimatedContainer(
@@ -349,7 +400,9 @@ class LevelSelectOverlay extends StatelessWidget {
             color: bg,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isCursor ? palette.star : palette.panelBorder,
+              color: isCursor
+                  ? widget.palette.star
+                  : widget.palette.panelBorder,
               width: isCursor ? 3 : 1,
             ),
           ),
@@ -369,11 +422,16 @@ class LevelSelectOverlay extends StatelessWidget {
                 Icon(
                   Icons.lock_rounded,
                   size: 18,
-                  color: palette.textSecondary,
+                  color: widget.palette.textSecondary,
                 ),
               const SizedBox(height: 4),
               if (unlocked)
-                StarRow(count: stars, palette: palette, size: 12, spacing: 1),
+                StarRow(
+                  count: stars,
+                  palette: widget.palette,
+                  size: 12,
+                  spacing: 1,
+                ),
             ],
           ),
         ),

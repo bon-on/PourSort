@@ -201,6 +201,11 @@ void main() {
       });
       expect((await PrefsProgressStore().load()).lastLevel, 3);
       SharedPreferences.setMockInitialValues({
+        'pour_sort.progress_v1': '[]',
+        'pour_sort.level': 6,
+      });
+      expect((await PrefsProgressStore().load()).lastLevel, 6);
+      SharedPreferences.setMockInitialValues({
         'pour_sort.progress_v1': 42,
         'pour_sort.level': 'nope',
       });
