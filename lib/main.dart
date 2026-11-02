@@ -36,6 +36,7 @@ class PourSortApp extends StatelessWidget {
       title: 'PourSort',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        fontFamily: 'Roboto',
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF38BDF8),

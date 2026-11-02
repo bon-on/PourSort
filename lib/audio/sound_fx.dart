@@ -194,9 +194,7 @@ class SoundFx {
   void _invoke(String method, [Object? arguments]) {
     if (_isWeb) return;
     try {
-      _channel
-          .invokeMethod<void>(method, arguments)
-          .catchError((Object _) {});
+      _channel.invokeMethod<void>(method, arguments).catchError((Object _) {});
     } catch (_) {}
   }
 }

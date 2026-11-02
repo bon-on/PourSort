@@ -145,17 +145,81 @@ void paintTube(
   final ca = math.cos(angle);
   final sa = math.sin(angle);
   final reach = h * 2;
-  // Local direction of world-horizontal, and local "up" normal to it.
-  Offset along(double y, double s) => Offset(cx + s * ca, y - s * sa);
+  // Liquid levels are measured along world-down projected into the tube's
+  // frame: Y = x * sin(a) + y * cos(a). Upright, Y is just y.
+  final x0 = g.glass, x1 = w - g.glass, y0 = g.lipH, y1 = g.liquidBottom;
+  (double, double)? chord(double level) {
+    var lo = -double.infinity, hi = double.infinity;
+    if (ca.abs() > 1e-6) {
+      final a1 = (x0 - level * sa) / ca, a2 = (x1 - level * sa) / ca;
+      lo = math.max(lo, math.min(a1, a2));
+      hi = math.min(hi, math.max(a1, a2));
+    } else if (level * sa < x0 || level * sa > x1) {
+      return null;
+    }
+    if (sa.abs() > 1e-6) {
+      final b1 = (level * ca - y1) / sa, b2 = (level * ca - y0) / sa;
+      lo = math.max(lo, math.min(b1, b2));
+      hi = math.min(hi, math.max(b1, b2));
+    } else if (level * ca < y0 || level * ca > y1) {
+      return null;
+    }
+    return hi > lo ? (lo, hi) : null;
+  }
+
+  final midS = cx * ca - (y0 + y1) / 2 * sa;
+  // Point at signed distance [s] from the chord middle on the level line.
+  Offset along(double level, double s) {
+    final c = chord(level);
+    final t = (c == null ? midS : (c.$1 + c.$2) / 2) + s;
+    return Offset(level * sa + t * ca, level * ca - t * sa);
+  }
+
   final up = Offset(-sa, -ca);
-  var y = g.liquidBottom;
+  final upright = angle.abs() < 0.01;
+  // Cumulative liquid area from the lowest point, for tilted tubes.
+  final cum = <double>[0];
+  var yMin = 0.0, yMax = 0.0, step = 0.0;
+  if (!upright) {
+    final ys = [
+      for (final p in [
+        Offset(x0, y0),
+        Offset(x1, y0),
+        Offset(x0, y1),
+        Offset(x1, y1),
+      ])
+        p.dx * sa + p.dy * ca,
+    ];
+    yMin = ys.reduce(math.min);
+    yMax = ys.reduce(math.max);
+    const n = 48;
+    step = (yMax - yMin) / n;
+    for (var i = 1; i <= n; i++) {
+      final c = chord(yMax - (i - 0.5) * step);
+      cum.add(cum.last + (c == null ? 0 : (c.$2 - c.$1) * step));
+    }
+  }
+  double levelAt(double segments) {
+    if (upright) return g.liquidBottom - segments * g.segment;
+    final v = segments * g.segment * (x1 - x0);
+    for (var i = 1; i < cum.length; i++) {
+      if (cum[i] >= v) {
+        final span = cum[i] - cum[i - 1];
+        final f = span <= 0 ? 0.0 : (v - cum[i - 1]) / span;
+        return yMax - (i - 1 + f) * step;
+      }
+    }
+    return yMin;
+  }
+
+  var y = levelAt(0);
   final total = bands.fold<double>(0, (a, b) => a + b.amount);
   var filled = 0.0;
   for (var bi = 0; bi < bands.length; bi++) {
     final b = bands[bi];
     if (b.amount <= 0.001) continue;
-    final top = y - b.amount * g.segment;
     filled += b.amount;
+    final top = levelAt(filled);
     final isTop = filled >= total - 0.001;
     final base = liquidColor(b.color);
     final path = Path();

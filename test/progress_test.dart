@@ -121,9 +121,7 @@ void main() {
           .applyWin(level: 1, moves: 8, par: 8)
           .progress
           .withLastLevel(2);
-      final back = PlayerProgress.fromJson(
-        jsonDecode(jsonEncode(p.toJson())),
-      );
+      final back = PlayerProgress.fromJson(jsonDecode(jsonEncode(p.toJson())));
       expect(back.lastLevel, 2);
       expect(back.highestLevel, 2);
       expect(back.starsFor(1), 3);
