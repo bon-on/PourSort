@@ -42,13 +42,17 @@ On `localhost` the SDK environment is `local`; the console logs
 |---|---|
 | App start | `SDK.init()`; SDK disabled unless environment is `crazygames` or `local` |
 | Playing (tutorial closed, level not cleared) | `gameplayStart()` |
-| How-to-play overlay opens | `gameplayStop()` |
+| How-to-play, level select or theme overlay opens | `gameplayStop()` |
 | Overlay closes | `gameplayStart()` |
 | level cleared | `gameplayStop()` |
 | Next level / restart after clear | `gameplayStart()` |
 
 Only transitions are reported. On first launch the first start comes after the tutorial
 closes.
+
+Audio: `game.settings.muteAudio` and `addSettingsChangeListener` mute effects and the
+background music at once (the music also waits for the first user input and pauses while
+the tab is hidden).
 
 ## Disabled in the CrazyGames build
 
