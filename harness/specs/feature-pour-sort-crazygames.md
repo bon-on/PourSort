@@ -49,7 +49,7 @@ outbound links or ads.
   script before `flutter_bootstrap.js`, no `*.symbols`, at most 1500 files and
   50MB.
 
-Out of scope: ads, Data/User modules, gameplay changes, portal submission.
+Out of scope: ads, gameplay changes, portal submission. (The Data/User modules were later added for progress saving only by `feature-crazygames-cloud-save`.)
 
 ## Acceptance Criteria
 - `flutter analyze` and `flutter test` pass.

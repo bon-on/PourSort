@@ -59,9 +59,18 @@ the tab is hidden).
 Nothing needs disabling: the game has no ads, no leaderboard or result upload and no
 hub navigation bar, and `index.html` contains no outbound links.
 
+## Progress save
+
+Progress is saved through the SDK Data module (`feature-crazygames-cloud-save`). On the portal submission screen, **Progress Save** must be set to "Yes, using the Data Module from the CrazyGames SDK"; otherwise the Data module is disabled and progress stays in browser localStorage only.
+
+- All preferences live in one Data module key, `prefs_v1`, as `{rev, owner, values}`, and are mirrored to localStorage. The localStorage item `cg_prefs_stamp_v1` records the mirror's owner (username, null for guests) and revision.
+- On start, a local mirror of the same player with an equal or higher revision wins; otherwise the account copy is used. Another player's mirror is never used. Progress from before this feature is adopted only while no account copy exists.
+- A login or logout (`user.addAuthListener`) to a different player reloads the page. If the initial user cannot be determined, cloud save stays off.
+
 ## Upload checklist
 
 - [ ] Submit through Basic Launch first (ads are not allowed there).
+- [ ] Progress Save: choose "Yes, using the Data Module from the CrazyGames SDK" (see Progress save).
 - [ ] Orientation: portrait and landscape both work; the board fits any size.
 - [ ] Input: mouse/touch and keyboard (see README).
 - [ ] Covers (not created yet): 1920x1080, 800x1200, 800x800.
