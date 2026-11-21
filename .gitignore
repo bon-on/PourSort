@@ -44,5 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# harness-lab local state
-.harness-lab/
+# harness-lab local artifacts
+.harness-lab/backups/
+.harness-lab/lock
+out/
