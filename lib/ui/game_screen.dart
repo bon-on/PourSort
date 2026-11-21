@@ -119,14 +119,21 @@ class _GameScreenState extends State<GameScreen>
   );
 
   bool get _inputBlocked =>
-      !_tutorialChecked || _tutorialOpen || _overlay != _Overlay.none;
+      !_appActive ||
+      !_tutorialChecked ||
+      _tutorialOpen ||
+      _overlay != _Overlay.none;
 
   // Whether the platform currently believes gameplay is running.
+  bool _appActive =
+      WidgetsBinding.instance.lifecycleState == null ||
+      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
   bool _gameplayActive = false;
 
   /// Reports gameplay start/stop to the platform exactly on transitions.
   void _syncGameplay() {
     final wantActive =
+        _appActive &&
         _ctrl.loaded &&
         _tutorialChecked &&
         !_tutorialOpen &&
@@ -148,12 +155,7 @@ class _GameScreenState extends State<GameScreen>
     _ctrl.init();
     _checkTutorial();
     _loadSoundMuted();
-    _lifecycle = AppLifecycleListener(
-      onStateChange: (state) => _sfx.setAppVisible(
-        state == AppLifecycleState.resumed ||
-            state == AppLifecycleState.inactive,
-      ),
-    );
+    _lifecycle = AppLifecycleListener(onStateChange: _onAppLifecycleChanged);
     HardwareKeyboard.instance.addHandler(_onHardwareKey);
     widget.platform.setAudioMuteListener(_sfx.refreshMute);
   }
@@ -380,6 +382,12 @@ class _GameScreenState extends State<GameScreen>
     }
     _syncGameplay();
     if (mounted) setState(() {});
+  }
+
+  void _onAppLifecycleChanged(AppLifecycleState state) {
+    _appActive = state == AppLifecycleState.resumed;
+    _sfx.setAppVisible(_appActive);
+    _syncGameplay();
   }
 
   @override

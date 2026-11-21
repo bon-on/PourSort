@@ -34,6 +34,7 @@ class GameController extends ChangeNotifier {
   WinOutcome? outcome;
 
   bool _disposed = false;
+  Future<void> _saveTail = Future<void>.value();
 
   @override
   void dispose() {
@@ -56,16 +57,28 @@ class GameController extends ChangeNotifier {
     if (_disposed) return;
     progress = saved;
     loaded = true;
-    loadLevel(saved.lastLevel);
+    loadLevel(saved.lastLevel, restore: saved.activeRun);
   }
 
-  Future<void> _save() async {
+  void _save() {
     if (!loaded) return;
-    try {
-      await store.save(progress);
-    } catch (_) {
-      // Progress is best effort; the game keeps working without storage.
-    }
+    final captured = progress;
+    _saveTail = _saveTail.then((_) async {
+      try {
+        await store.save(captured);
+      } catch (_) {
+        // A failed write must not break play or later writes.
+      }
+    });
+  }
+
+  void _saveAttempt() {
+    progress = progress.withActiveRun({
+      'v': 1,
+      'level': level,
+      'game': game.toSnapshot(),
+    });
+    _save();
   }
 
   int get par => parForLevel(_level);
@@ -75,20 +88,20 @@ class GameController extends ChangeNotifier {
   int get starsNow =>
       starsForMoves(game.moves, par, usedExtraTube: game.extraTubeUsed);
 
-  void loadLevel(int n) {
+  void loadLevel(int n, {Object? restore}) {
     level = n < 1 ? 1 : n;
     _level = generateLevel(level);
-    game = PourGame(_level.tubes);
+    game = restore is Map && restore['v'] == 1 && restore['level'] == level
+        ? PourGame.restore(restore['game'], _level.tubes) ??
+              PourGame(_level.tubes)
+        : PourGame(_level.tubes);
     selected = null;
     lastMove = null;
     outcome = null;
     levelSerial++;
     if (loaded) {
-      final next = progress.withLastLevel(level);
-      if (!identical(next, progress)) {
-        progress = next;
-        _save();
-      }
+      progress = progress.withLastLevel(level);
+      _saveAttempt();
     }
     notifyListeners();
   }
@@ -108,7 +121,7 @@ class GameController extends ChangeNotifier {
   }
 
   void tap(int i) {
-    if (won || i < 0 || i >= game.tubes.length) return;
+    if (!loaded || won || i < 0 || i >= game.tubes.length) return;
     final from = selected;
     if (from == null) {
       if (game.tubes[i].isNotEmpty) selected = i;
@@ -120,7 +133,11 @@ class GameController extends ChangeNotifier {
         selected = null;
         lastMove = move;
         moveSerial++;
-        if (won) _onWin();
+        if (won) {
+          _onWin();
+        } else {
+          _saveAttempt();
+        }
       } else {
         selected = game.tubes[i].isNotEmpty ? i : null;
       }
@@ -136,13 +153,14 @@ class GameController extends ChangeNotifier {
       usedExtraTube: game.extraTubeUsed,
     );
     outcome = result;
-    progress = result.progress.withLastLevel(level + 1);
+    progress = result.progress.withLastLevel(level + 1).withActiveRun(null);
     _save();
   }
 
   void undo() {
-    if (won) return;
+    if (!loaded || won) return;
     if (game.undo() != null) {
+      _saveAttempt();
       undoSerial++;
       selected = null;
       lastMove = null;
@@ -153,7 +171,10 @@ class GameController extends ChangeNotifier {
   void restart() => loadLevel(level);
 
   void addTube() {
-    if (!won && game.addExtraTube()) notifyListeners();
+    if (loaded && !won && game.addExtraTube()) {
+      _saveAttempt();
+      notifyListeners();
+    }
   }
 
   void nextLevel() => loadLevel(level + 1);

@@ -91,10 +91,12 @@ class PlayerProgress {
     required this.records,
     required this.totalXp,
     required this.selectedTheme,
+    this.activeRun,
   });
 
   const PlayerProgress.initial()
-    : lastLevel = 1,
+    : activeRun = null,
+      lastLevel = 1,
       highestLevel = 1,
       records = const <int, LevelRecord>{},
       totalXp = 0,
@@ -117,6 +119,18 @@ class PlayerProgress {
   static const int firstClearXp = 25;
   static const int replayXp = 5;
   static const int xpPerStar = 15;
+
+  /// Opaque envelope of the unfinished attempt; validated only on restore.
+  final Object? activeRun;
+
+  PlayerProgress withActiveRun(Object? run) => PlayerProgress(
+    lastLevel: lastLevel,
+    highestLevel: highestLevel,
+    records: records,
+    totalXp: totalXp,
+    selectedTheme: selectedTheme,
+    activeRun: run,
+  );
 
   /// Level the player resumes on.
   final int lastLevel;
@@ -252,6 +266,7 @@ class PlayerProgress {
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'v': 1,
+    if (activeRun != null) 'activeRun': activeRun,
     'lastLevel': lastLevel,
     'highestLevel': highestLevel,
     'levels': <String, dynamic>{
@@ -295,6 +310,7 @@ class PlayerProgress {
     if (last > h) h = last;
     if (maxRecord + 1 > h) h = maxRecord + 1;
     final progress = PlayerProgress(
+      activeRun: json['activeRun'],
       lastLevel: last,
       highestLevel: h,
       records: Map.unmodifiable(records),
@@ -312,6 +328,7 @@ class PlayerProgress {
     PourTheme? selectedTheme,
   }) {
     return PlayerProgress(
+      activeRun: activeRun,
       lastLevel: lastLevel ?? this.lastLevel,
       highestLevel: highestLevel ?? this.highestLevel,
       records: Map.unmodifiable(records ?? this.records),

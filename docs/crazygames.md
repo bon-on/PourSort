@@ -73,5 +73,12 @@ Progress is saved through the SDK Data module (`feature-crazygames-cloud-save`).
 - [ ] Progress Save: choose "Yes, using the Data Module from the CrazyGames SDK" (see Progress save).
 - [ ] Orientation: portrait and landscape both work; the board fits any size.
 - [ ] Input: mouse/touch and keyboard (see README).
-- [ ] Covers (not created yet): 1920x1080, 800x1200, 800x800.
+- [ ] Prepared covers: 1920x1080, 800x1200, 800x800.
 - [ ] Check loading and gameplay events in the portal QA tool.
+
+## Launch verification — 2026-11-06
+
+- Covers are maintained in the workspace marketing folder (`../_marketing/PourSort/crazygames-launch/`) in landscape 1920x1080, portrait 800x1200 and square 800x800 sizes.
+- Backgrounding or losing focus pauses SDK gameplay and sound; resume starts gameplay only if no tutorial/menu/result is open. Repeated lifecycle transitions do not duplicate events.
+- Local automated SDK tests use a fake SDK. Final portal QA must still confirm the real uploaded build's loading, inputs, audio mute and account progress persistence.
+- The self-contained release packet is prepared at `../_marketing/crazygames-launch-2026-11-06/PourSort/` (ZIP, media and submission metadata). Portal upload and real QA are pending authenticated portal access.

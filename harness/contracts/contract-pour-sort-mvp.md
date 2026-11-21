@@ -3,6 +3,7 @@ id: contract-pour-sort-mvp
 title: Deliver the PourSort MVP
 status: active
 related_specs:
+  - feature-active-run-resume
   - feature-pour-sort-mvp
   - feature-how-to-play-tutorial
   - feature-game-hub-navigation

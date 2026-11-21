@@ -76,6 +76,51 @@ class PourGame {
   PourGame(List<List<int>> tubes, {this.capacity = kTubeCapacity})
     : _tubes = [for (final t in tubes) List<int>.of(t)];
 
+  /// Versioned attempt, including the full reversible move history.
+  Map<String, dynamic> toSnapshot() => {
+    'v': 1,
+    'tubes': [for (final t in _tubes) List<int>.of(t)],
+    'extra': _extraTubeUsed,
+    'history': [
+      for (final m in _history) [m.from, m.to, m.count, m.color],
+    ],
+  };
+
+  /// Replay validates both the board and undo history before exposing state.
+  static PourGame? restore(Object? data, List<List<int>> initialTubes) {
+    if (data is! Map || data['v'] != 1 || data['extra'] is! bool) {
+      return null;
+    }
+    final history = data['history'];
+    final board = data['tubes'];
+    if (history is! List || history.length > 10000 || board is! List) {
+      return null;
+    }
+    final candidate = PourGame(initialTubes);
+    if (data['extra'] == true) candidate.addExtraTube();
+    if (board.length != candidate.tubes.length) return null;
+    for (final raw in history) {
+      if (raw is! List || raw.length != 4 || raw.any((v) => v is! int)) {
+        return null;
+      }
+      if (candidate.isWon) return null;
+      final actual = candidate.pour(raw[0] as int, raw[1] as int);
+      if (actual == null || actual.count != raw[2] || actual.color != raw[3]) {
+        return null;
+      }
+    }
+    if (candidate.isWon) return null;
+    for (var i = 0; i < board.length; i++) {
+      final tube = board[i];
+      final expected = candidate.tubes[i];
+      if (tube is! List || tube.length != expected.length) return null;
+      for (var j = 0; j < tube.length; j++) {
+        if (tube[j] is! int || tube[j] != expected[j]) return null;
+      }
+    }
+    return candidate;
+  }
+
   final int capacity;
   final List<List<int>> _tubes;
   final List<PourMove> _history = [];
