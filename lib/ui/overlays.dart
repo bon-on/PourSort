@@ -70,148 +70,166 @@ class WinCard extends StatelessWidget {
       fontSize: 15,
       fontWeight: FontWeight.w600,
     );
-    return SingleChildScrollView(
-      padding: compact
-          ? const EdgeInsets.fromLTRB(18, 12, 18, 12)
-          : const EdgeInsets.fromLTRB(22, 20, 22, 18),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              'Level complete!',
-              style: TextStyle(
-                color: palette.text,
-                fontSize: compact ? 22 : 28,
-                fontWeight: FontWeight.w900,
-              ),
+    // The buttons stay pinned below the scrolling result so short phones
+    // can always move on.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: SingleChildScrollView(
+            padding: compact
+                ? const EdgeInsets.fromLTRB(18, 12, 18, 0)
+                : const EdgeInsets.fromLTRB(22, 20, 22, 0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Level complete!',
+                    style: TextStyle(
+                      color: palette.text,
+                      fontSize: compact ? 22 : 28,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                SizedBox(height: compact ? 4 : 10),
+                Row(
+                  key: const Key('win-stars'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < 3; i++)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: 4,
+                          right: 4,
+                          bottom: i == 1 ? 10 : 0,
+                        ),
+                        child: StarShape(
+                          size: (i == 1 ? 56 : 46) * (compact ? 0.7 : 1.0),
+                          filled: i < o.stars,
+                          palette: palette,
+                          scale: i < o.stars
+                              ? Curves.elasticOut.transform(
+                                  ((v - 0.45 - i * 0.12) / 0.3).clamp(0.0, 1.0),
+                                )
+                              : 1,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Level ${o.level} - ${o.moves} moves - Par ${o.par}',
+                  style: textStyle,
+                ),
+                const SizedBox(height: 4),
+                if (o.isNewBest)
+                  _chip('New best!', palette.accent, palette.accentInk)
+                else if (!o.firstClear && best > 0)
+                  Text(
+                    'Best $best moves',
+                    style: textStyle.copyWith(color: palette.textSecondary),
+                  ),
+                if (o.stars < 3 && !compact)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      o.stars == 2 && o.moves <= o.par
+                          ? 'Finish without the extra tube for 3 stars'
+                          : 'Finish in ${o.par} moves for 3 stars',
+                      textAlign: TextAlign.center,
+                      style: textStyle.copyWith(
+                        color: palette.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                SizedBox(height: compact ? 8 : 14),
+                Row(
+                  children: [
+                    Text(
+                      'Lv ${progress.playerLevel}',
+                      style: TextStyle(
+                        color: palette.text,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GameProgressBar(
+                        palette: palette,
+                        value: lvlProgress,
+                        height: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      '+${o.xpGained} XP',
+                      style: TextStyle(
+                        color: palette.accent,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                if (o.leveledUp) ...[
+                  const SizedBox(height: 10),
+                  _chip(
+                    'Level up! Lv ${o.playerLevelAfter}',
+                    palette.star,
+                    const Color(0xFF3B2A00),
+                  ),
+                ],
+                for (final t in o.newlyUnlockedThemes) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'New theme unlocked: ${t.label}',
+                    style: textStyle.copyWith(
+                      color: palette.accent,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          SizedBox(height: compact ? 4 : 10),
-          Row(
-            key: const Key('win-stars'),
+        ),
+        Padding(
+          padding: compact
+              ? const EdgeInsets.fromLTRB(18, 10, 18, 12)
+              : const EdgeInsets.fromLTRB(22, 18, 22, 18),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (var i = 0; i < 3; i++)
-                Padding(
-                  padding: EdgeInsets.only(
-                    left: 4,
-                    right: 4,
-                    bottom: i == 1 ? 10 : 0,
-                  ),
-                  child: StarShape(
-                    size: (i == 1 ? 56 : 46) * (compact ? 0.7 : 1.0),
-                    filled: i < o.stars,
-                    palette: palette,
-                    scale: i < o.stars
-                        ? Curves.elasticOut.transform(
-                            ((v - 0.45 - i * 0.12) / 0.3).clamp(0.0, 1.0),
-                          )
-                        : 1,
-                  ),
+              if (compact)
+                Row(
+                  children: [
+                    Expanded(child: _replay()),
+                    const SizedBox(width: 8),
+                    Expanded(child: _levels()),
+                    const SizedBox(width: 8),
+                    Expanded(flex: 2, child: _next()),
+                  ],
+                )
+              else ...[
+                Row(
+                  children: [
+                    Expanded(child: _replay()),
+                    const SizedBox(width: 10),
+                    Expanded(child: _levels()),
+                  ],
                 ),
+                const SizedBox(height: 10),
+                SizedBox(width: double.infinity, child: _next()),
+              ],
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Level ${o.level} - ${o.moves} moves - Par ${o.par}',
-            style: textStyle,
-          ),
-          const SizedBox(height: 4),
-          if (o.isNewBest)
-            _chip('New best!', palette.accent, palette.accentInk)
-          else if (!o.firstClear && best > 0)
-            Text(
-              'Best $best moves',
-              style: textStyle.copyWith(color: palette.textSecondary),
-            ),
-          if (o.stars < 3 && !compact)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                o.stars == 2 && o.moves <= o.par
-                    ? 'Finish without the extra tube for 3 stars'
-                    : 'Finish in ${o.par} moves for 3 stars',
-                textAlign: TextAlign.center,
-                style: textStyle.copyWith(
-                  color: palette.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          SizedBox(height: compact ? 8 : 14),
-          Row(
-            children: [
-              Text(
-                'Lv ${progress.playerLevel}',
-                style: TextStyle(
-                  color: palette.text,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GameProgressBar(
-                  palette: palette,
-                  value: lvlProgress,
-                  height: 12,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                '+${o.xpGained} XP',
-                style: TextStyle(
-                  color: palette.accent,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          if (o.leveledUp) ...[
-            const SizedBox(height: 10),
-            _chip(
-              'Level up! Lv ${o.playerLevelAfter}',
-              palette.star,
-              const Color(0xFF3B2A00),
-            ),
-          ],
-          for (final t in o.newlyUnlockedThemes) ...[
-            const SizedBox(height: 6),
-            Text(
-              'New theme unlocked: ${t.label}',
-              style: textStyle.copyWith(
-                color: palette.accent,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-          SizedBox(height: compact ? 10 : 18),
-          if (compact)
-            Row(
-              children: [
-                Expanded(child: _replay()),
-                const SizedBox(width: 8),
-                Expanded(child: _levels()),
-                const SizedBox(width: 8),
-                Expanded(flex: 2, child: _next()),
-              ],
-            )
-          else ...[
-            Row(
-              children: [
-                Expanded(child: _replay()),
-                const SizedBox(width: 10),
-                Expanded(child: _levels()),
-              ],
-            ),
-            const SizedBox(height: 10),
-            SizedBox(width: double.infinity, child: _next()),
-          ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -462,7 +480,8 @@ class ThemeOverlay extends StatelessWidget {
       palette: palette,
       maxWidth: 520,
       cardKey: const Key('theme-picker'),
-      child: SingleChildScrollView(
+      // The header and its close button stay pinned while themes scroll.
+      child: Padding(
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -482,19 +501,23 @@ class ThemeOverlay extends StatelessWidget {
               closeKey: const Key('theme-picker-close'),
             ),
             const SizedBox(height: 12),
-            LayoutBuilder(
-              builder: (context, box) {
-                final cols = box.maxWidth >= 420 ? 4 : 2;
-                final w = (box.maxWidth - 10 * (cols - 1)) / cols;
-                return Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    for (final t in PourTheme.values)
-                      SizedBox(width: w, child: _card(t)),
-                  ],
-                );
-              },
+            Flexible(
+              child: SingleChildScrollView(
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    final cols = box.maxWidth >= 420 ? 4 : 2;
+                    final w = (box.maxWidth - 10 * (cols - 1)) / cols;
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        for (final t in PourTheme.values)
+                          SizedBox(width: w, child: _card(t)),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
           ],
         ),

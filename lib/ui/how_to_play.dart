@@ -87,73 +87,87 @@ class HowToPlayOverlay extends StatelessWidget {
       palette: p,
       maxWidth: 360,
       cardKey: const Key('how-to-play'),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(22, 20, 22, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'How to play',
-              style: TextStyle(
-                color: p.text,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color.lerp(p.accent, Colors.white, 0.3)!, p.accent],
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x40000000),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
+      // Skip and Next stay pinned below the scrolling step so short or
+      // landscape phones can always leave the card.
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'How to play',
+                    style: TextStyle(
+                      color: p.text,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color.lerp(p.accent, Colors.white, 0.3)!,
+                          p.accent,
+                        ],
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x40000000),
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(s.icon, size: 38, color: p.accentInk),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    s.text,
+                    key: const Key('how-to-play-text'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: p.text,
+                      fontSize: 16,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (var i = 0; i < steps.length; i++)
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: i == step ? 22 : 8,
+                          height: 8,
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            color: i == step
+                                ? p.accent
+                                : p.textSecondary.withValues(alpha: 0.35),
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),
-              child: Icon(s.icon, size: 38, color: p.accentInk),
             ),
-            const SizedBox(height: 14),
-            Text(
-              s.text,
-              key: const Key('how-to-play-text'),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: p.text,
-                fontSize: 16,
-                height: 1.4,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var i = 0; i < steps.length; i++)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: i == step ? 22 : 8,
-                    height: 8,
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
-                      color: i == step
-                          ? p.accent
-                          : p.textSecondary.withValues(alpha: 0.35),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 14, 22, 16),
+            child: Row(
               children: [
                 Expanded(
                   child: PillButton(
@@ -175,8 +189,8 @@ class HowToPlayOverlay extends StatelessWidget {
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
