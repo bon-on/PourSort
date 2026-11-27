@@ -28,7 +28,7 @@ CrazyGames, GamePix) and on iOS/Android, and a way to turn them off.
   `tool/generate_sounds.py` (deterministic): `select`, `pour`, `invalid`,
   `level_clear`. No third-party audio.
 - `lib/audio/sound_fx.dart` (`SoundFx`, `Sfx`): `play` is a no-op while muted,
-  never throws and never awaits. Web uses HTML `Audio` elements
+  never throws and never awaits. Web uses the Web Audio API (`feature-web-audio-playback`)
   (`web_sound_web.dart`, conditional import with `web_sound_stub.dart`);
   mobile uses the `pour_sort/audio` MethodChannel (`play {asset, volume}`,
   `disposeAudio`): iOS AVAudioPlayer with the `.ambient` session category,

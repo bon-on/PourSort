@@ -64,7 +64,7 @@ Roboto (Regular, Medium, Bold, Black) is bundled in `assets/fonts/` so web build
 
 - `lib/logic/` - rules, solver, level generator, stars, player progress and store (no widgets)
 - `lib/art/` - code-drawn tubes, cork and themed sceneries
-- `lib/audio/` - sound effects and music loop (web HTML audio, native channel) and the mute store
+- `lib/audio/` - sound effects and music loop (web Web Audio, native channel) and the mute store
 - `lib/ui/` - game screen, board painter and effect clock, HUD, overlays
 - `test/` - unit tests and a widget smoke test
 - `harness/` - specs, ADRs and contracts (spec-driven development)
