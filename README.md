@@ -50,7 +50,7 @@ flutter build web --release --base-href /PourSort/
 
 ## GamePix build
 
-`tool/build_gamepix.sh` builds `build/pour-sort-gamepix.zip` for GamePix (no portal SDK, no ads, relative resources). See `docs/gamepix.md`.
+`tool/build_gamepix.sh` builds `build/pour-sort-gamepix.zip` for GamePix (GamePix SDK v3 with interstitials when the next level starts after a clear; no hub link, relative resources). See `docs/gamepix.md`.
 
 ## Sounds
 

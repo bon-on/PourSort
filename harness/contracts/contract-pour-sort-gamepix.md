@@ -4,6 +4,7 @@ title: Deliver the PourSort GamePix web bundle
 status: active
 related_specs:
   - feature-pour-sort-gamepix
+  - feature-gamepix-sdk
 evidence_files:
   - docs/gamepix.md
   - reports/pour-sort-gamepix-verification.md
@@ -12,15 +13,16 @@ evidence_files:
 # Contract: PourSort GamePix web bundle
 
 ## Goal
-Produce an upload-ready GamePix bundle (SDK-free, relative resources) from the
+Produce an upload-ready GamePix bundle (GamePix SDK v3 only, relative resources; see feature-gamepix-sdk) from the
 same Flutter codebase without changing gameplay.
 
 ## Done Criteria
 - `flutter analyze` and `flutter test` pass.
 - `tool/build_gamepix.sh` succeeds and writes `build/pour-sort-gamepix.zip` with
   index.html at the zip root.
-- The GamePix `main.dart.js` has no `crazygames` string and `FontManifest.json`
-  lists Roboto.
+- The GamePix `main.dart.js` has no `crazygames` string, the CrazyGames
+  `main.dart.js` has no `GamePix` string, `index.html` loads only the GamePix
+  SDK before `flutter_bootstrap.js`, and `FontManifest.json` lists Roboto.
 - Results are recorded in `reports/pour-sort-gamepix-verification.md`.
 
 ## Verification

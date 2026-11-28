@@ -9,6 +9,8 @@ related_specs:
 # ADR: Select the GamePix build with a GAMEPIX flag and the no-op platform
 
 ## Context
+Partly superseded by adr-gamepix-sdk: the GamePix build now uses the GamePix SDK v3 adapter instead of the no-op platform and shows break ads.
+
 GamePix forbids third-party SDKs and external requests. The CrazyGames build
 already exists and uses `CRAZYGAMES=true`. Flutter web also downloads Roboto
 from fonts.gstatic.com unless a Roboto family is bundled.

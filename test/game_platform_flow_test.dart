@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +11,20 @@ import 'package:pour_sort/platform/game_platform.dart';
 import 'package:pour_sort/ui/how_to_play.dart';
 
 class _FakePlatform extends GamePlatform {
+  _FakePlatform({this.showsRunBreakAds = false});
+
+  @override
+  final bool showsRunBreakAds;
+
+  /// Completes the ad in flight; null when no ad was requested.
+  Completer<void>? ad;
+
+  @override
+  Future<void> showRunBreakAd() {
+    events.add('ad');
+    return (ad = Completer<void>()).future;
+  }
+
   final List<String> events = <String>[];
 
   @override
@@ -24,11 +40,12 @@ class _FakePlatform extends GamePlatform {
 Future<_FakePlatform> _launch(
   WidgetTester t, {
   required bool tutorialSeen,
+  bool showsRunBreakAds = false,
 }) async {
   t.view.physicalSize = const Size(390, 844);
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
-  final platform = _FakePlatform();
+  final platform = _FakePlatform(showsRunBreakAds: showsRunBreakAds);
   await t.pumpWidget(
     PourSortApp(
       store: MemoryProgressStore(),
@@ -131,5 +148,58 @@ void main() {
     await t.tap(find.byKey(const Key('next-level')));
     await t.pumpAndSettle();
     expect(platform.events, ['start', 'stop', 'start']);
+  });
+
+  testWidgets('the next level waits for the break ad, mid-level never', (
+    t,
+  ) async {
+    final platform = await _launch(
+      t,
+      tutorialSeen: true,
+      showsRunBreakAds: true,
+    );
+    await t.tap(find.byKey(const Key('restart')));
+    await t.pump();
+    expect(platform.events, ['start'], reason: 'no ad mid-level');
+
+    await _solveLevel(t);
+    expect(platform.events, ['start', 'stop'], reason: 'no ad on the clear');
+    expect(find.byKey(const Key('next-level')), findsOneWidget);
+
+    await t.tap(find.byKey(const Key('next-level')));
+    await t.pump();
+    await t.tap(find.byKey(const Key('next-level')), warnIfMissed: false);
+    await t.pump();
+    await t.sendKeyEvent(LogicalKeyboardKey.enter);
+    await t.pump();
+    expect(platform.events.where((e) => e == 'ad'), hasLength(1));
+    expect(
+      find.byKey(const Key('next-level')),
+      findsOneWidget,
+      reason: 'still on the cleared level while the ad plays',
+    );
+
+    platform.ad!.complete();
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('next-level')), findsNothing);
+    expect(platform.events, ['start', 'stop', 'ad', 'start']);
+  });
+
+  testWidgets('replay after a clear also waits for the break ad', (t) async {
+    final platform = await _launch(
+      t,
+      tutorialSeen: true,
+      showsRunBreakAds: true,
+    );
+    await _solveLevel(t);
+    await t.tap(find.byKey(const Key('replay')));
+    await t.pump();
+    expect(platform.events.where((e) => e == 'ad'), hasLength(1));
+    expect(find.byKey(const Key('next-level')), findsOneWidget);
+
+    platform.ad!.complete();
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('next-level')), findsNothing);
+    expect(platform.events.last, 'start');
   });
 }

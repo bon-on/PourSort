@@ -10,7 +10,7 @@
 
 - Flutter app (web, iOS, Android). Keep dependencies minimal; only
   `shared_preferences` is allowed beyond the Flutter SDK without an ADR.
-- No network access, ads SDKs, accounts or leaderboards in v1.
+- No network access, ads SDKs, accounts or leaderboards in v1, except the portal SDK of a portal build (CrazyGames, and the GamePix SDK v3 with GamePix interstitials per adr-gamepix-sdk).
 - Game rules, solver and level generator stay in `lib/logic/` with no Flutter
   imports and must have unit tests.
 - Level generation is deterministic: level N uses seed N, and `Random` stays

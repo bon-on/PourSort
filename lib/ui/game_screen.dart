@@ -122,7 +122,11 @@ class _GameScreenState extends State<GameScreen>
       !_appActive ||
       !_tutorialChecked ||
       _tutorialOpen ||
+      _breakAdInProgress ||
       _overlay != _Overlay.none;
+
+  // True while a portal break ad runs between two levels.
+  bool _breakAdInProgress = false;
 
   // Whether the platform currently believes gameplay is running.
   bool _appActive =
@@ -279,8 +283,48 @@ class _GameScreenState extends State<GameScreen>
     if (_tutorialStep > 0) setState(() => _tutorialStep--);
   }
 
+  /// Win card Next: starts the next level after the break ad (if any).
+  void _nextLevel() {
+    final cleared = _ctrl.level;
+    _afterBreakAd(() {
+      // Only advance if the cleared level is still the one on screen.
+      if (_ctrl.won && _ctrl.level == cleared) _ctrl.nextLevel();
+      _focus.requestFocus();
+    });
+  }
+
+  /// Win card Replay: replays the cleared level after the break ad (if any).
+  void _replayLevel() {
+    final cleared = _ctrl.level;
+    _afterBreakAd(() {
+      if (_ctrl.won && _ctrl.level == cleared) _ctrl.restart();
+      _focus.requestFocus();
+    });
+  }
+
+  /// Runs [action] after a portal ad when the platform shows one; elsewhere
+  /// [action] runs right away. Only called from a finished level, never
+  /// mid-level (feature-gamepix-sdk). Input stays blocked while the ad runs
+  /// and a second request during it is ignored.
+  Future<void> _afterBreakAd(VoidCallback action) async {
+    if (!widget.platform.showsRunBreakAds) {
+      action();
+      return;
+    }
+    if (_breakAdInProgress) return;
+    setState(() => _breakAdInProgress = true);
+    try {
+      await widget.platform.showRunBreakAd();
+    } catch (_) {
+      // A failed ad never keeps the player from the next level.
+    } finally {
+      if (mounted) setState(() => _breakAdInProgress = false);
+    }
+    if (mounted) action();
+  }
+
   void _openLevels() {
-    if (!_ctrl.loaded) return;
+    if (!_ctrl.loaded || _breakAdInProgress) return;
     setState(() {
       _overlay = _Overlay.levels;
       _levelCursor = _ctrl.level.clamp(1, _ctrl.progress.highestLevel);
@@ -434,9 +478,9 @@ class _GameScreenState extends State<GameScreen>
       if (_isEnter(k) ||
           k == LogicalKeyboardKey.keyN ||
           k == LogicalKeyboardKey.escape) {
-        _ctrl.nextLevel();
+        _nextLevel();
       } else if (k == LogicalKeyboardKey.keyR) {
-        _ctrl.restart();
+        _replayLevel();
       } else if (k == LogicalKeyboardKey.keyL) {
         _openLevels();
       } else {
@@ -563,14 +607,8 @@ class _GameScreenState extends State<GameScreen>
                     progress: _ctrl.progress,
                     palette: palette,
                     animate: !_fx.reduceMotion,
-                    onNext: () {
-                      _ctrl.nextLevel();
-                      _focus.requestFocus();
-                    },
-                    onReplay: () {
-                      _ctrl.restart();
-                      _focus.requestFocus();
-                    },
+                    onNext: _nextLevel,
+                    onReplay: _replayLevel,
                     onLevels: _openLevels,
                   ),
                 ),
